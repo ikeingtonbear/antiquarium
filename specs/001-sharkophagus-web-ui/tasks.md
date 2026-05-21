@@ -24,12 +24,12 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure under `web/` directory per implementation plan
-- [ ] T002 Initialize package.json and project configuration files in `web/package.json`
-- [ ] T003 Configure typescript and bundler settings in `web/tsconfig.json` and `web/vite.config.ts`
-- [ ] T004 Setup testing toolchain and helper config in `web/vitest.config.ts` and `web/tests/setup.ts`
-- [ ] T005 Create development Docker container environment in `web/Dockerfile` and `web/docker-compose.yml`
-- [ ] T006 [P] Create design tokens and basic typography styles in `web/src/assets/base.css`
+- [X] T001 Create project structure under `web/` directory per implementation plan
+- [X] T002 Initialize package.json and project configuration files in `web/package.json`
+- [X] T003 Configure typescript and bundler settings in `web/tsconfig.json` and `web/vite.config.ts`
+- [X] T004 Setup testing toolchain and helper config in `web/vitest.config.ts` and `web/tests/setup.ts`
+- [X] T005 Create development Docker container environment in `web/Dockerfile` and `web/docker-compose.yml`
+- [X] T006 [P] Create design tokens and basic typography styles in `web/src/assets/base.css`
 
 ---
 
@@ -39,10 +39,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Define TypeScript entities, data models, and API interfaces in `web/src/types/index.ts`
-- [ ] T008 Configure the baseline App mount entrypoint and skeleton structure in `web/src/main.ts`, `web/index.html` and `web/src/App.vue`
-- [ ] T009 [P] Write unit tests for ErrorNotification component in `web/tests/components/ErrorNotification.spec.ts`
-- [ ] T010 [P] Implement dismissible floating error toast component in `web/src/components/ErrorNotification.vue`
+- [X] T007 Define TypeScript entities, data models, and API interfaces in `web/src/types/index.ts`
+- [X] T008 Configure the baseline App mount entrypoint and skeleton structure in `web/src/main.ts`, `web/index.html` and `web/src/App.vue`
+- [X] T009 [P] Write unit tests for ErrorNotification component in `web/tests/components/ErrorNotification.spec.ts`
+- [X] T010 [P] Implement dismissible floating error toast component in `web/src/components/ErrorNotification.vue`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -56,15 +56,15 @@
 
 ### Tests for User Story 1 (MANDATORY - TDD) ⚠️
 
-- [ ] T011 [P] [US1] Write unit tests for file extension and size validation in `web/tests/components/FileUpload.spec.ts`
-- [ ] T012 [P] [US1] Write unit tests for API upload method in `web/tests/services/api.spec.ts`
+- [X] T011 [P] [US1] Write unit tests for file extension and size validation in `web/tests/components/FileUpload.spec.ts`
+- [X] T012 [P] [US1] Write unit tests for API upload method in `web/tests/services/api.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement API client upload session method with progress callback in `web/src/services/api.ts`
-- [ ] T014 [US1] Create FileUpload view component with drag-and-drop zone and validation hooks in `web/src/components/FileUpload.vue`
-- [ ] T015 [US1] Build upload progress bar and status indicator inside `web/src/components/FileUpload.vue`
-- [ ] T016 [US1] Integrate FileUpload component and handle transition to upload-progress state in `web/src/App.vue`
+- [X] T013 [US1] Implement API client upload session method with progress callback in `web/src/services/api.ts`
+- [X] T014 [US1] Create FileUpload view component with drag-and-drop zone and validation hooks in `web/src/components/FileUpload.vue`
+- [X] T015 [US1] Build upload progress bar and status indicator inside `web/src/components/FileUpload.vue`
+- [X] T016 [US1] Integrate FileUpload component and handle transition to upload-progress state in `web/src/App.vue`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
 
@@ -78,14 +78,14 @@
 
 ### Tests for User Story 2 (MANDATORY - TDD) ⚠️
 
-- [ ] T017 [P] [US2] Write unit tests for session stats display format in `web/tests/components/StatsDashboard.spec.ts`
-- [ ] T018 [P] [US2] Write unit tests for statistics retrieval method in `web/tests/services/api.spec.ts`
+- [X] T017 [P] [US2] Write unit tests for session stats display format in `web/tests/components/StatsDashboard.spec.ts`
+- [X] T018 [P] [US2] Write unit tests for statistics retrieval method in `web/tests/services/api.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Implement API client statistics retrieval method `getStatistics` in `web/src/services/api.ts`
-- [ ] T020 [US2] Create StatsDashboard view component with beautiful card grid to present parsed stats in `web/src/components/StatsDashboard.vue`
-- [ ] T021 [US2] Connect state flow in App to query session statistics and render StatsDashboard upon upload success in `web/src/App.vue`
+- [X] T019 [US2] Implement API client statistics retrieval method `getStatistics` in `web/src/services/api.ts`
+- [X] T020 [US2] Create StatsDashboard view component with beautiful card grid to present parsed stats in `web/src/components/StatsDashboard.vue`
+- [X] T021 [US2] Connect state flow in App to query session statistics and render StatsDashboard upon upload success in `web/src/App.vue`
 
 **Checkpoint**: At this point, User Stories 1 and 2 should both work independently.
 
@@ -99,14 +99,14 @@
 
 ### Tests for User Story 3 (MANDATORY - TDD) ⚠️
 
-- [ ] T022 [P] [US3] Write unit tests for session termination action and state reset in `web/tests/components/StatsDashboard.spec.ts`
-- [ ] T023 [P] [US3] Write unit tests for API close session request in `web/tests/services/api.spec.ts`
+- [X] T022 [P] [US3] Write unit tests for session termination action and state reset in `web/tests/components/StatsDashboard.spec.ts`
+- [X] T023 [P] [US3] Write unit tests for API close session request in `web/tests/services/api.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Implement API client close method `closeSession` to trigger session DELETE in `web/src/services/api.ts`
-- [ ] T025 [US3] Add Acknowledge button and click event handler to trigger termination in `web/src/components/StatsDashboard.vue`
-- [ ] T026 [US3] Integrate state reset logic in App to clear session references and return to idle state on deletion success in `web/src/App.vue`
+- [X] T024 [US3] Implement API client close method `closeSession` to trigger session DELETE in `web/src/services/api.ts`
+- [X] T025 [US3] Add Acknowledge button and click event handler to trigger termination in `web/src/components/StatsDashboard.vue`
+- [X] T026 [US3] Integrate state reset logic in App to clear session references and return to idle state on deletion success in `web/src/App.vue`
 
 **Checkpoint**: All user stories should now be independently functional.
 
@@ -116,10 +116,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T027 Connect global error toast state to handle all API/network request failures in `web/src/App.vue`
-- [ ] T028 Refine premium dark mode styling, hover micro-animations, layout responsiveness, and browser scaling in `web/src/assets/base.css` and `web/index.html`
-- [ ] T029 [P] Run full test suite with coverage collection verifying we pass the >=80% line coverage requirement in `web/package.json`
-- [ ] T030 Validate application flow and containerized test execution inside the development Docker image
+- [X] T027 Connect global error toast state to handle all API/network request failures in `web/src/App.vue`
+- [X] T028 Refine premium dark mode styling, hover micro-animations, layout responsiveness, and browser scaling in `web/src/assets/base.css` and `web/index.html`
+- [X] T029 [P] Run full test suite with coverage collection verifying we pass the >=80% line coverage requirement in `web/package.json`
+- [X] T030 Validate application flow and containerized test execution inside the development Docker image
 
 ---
 
