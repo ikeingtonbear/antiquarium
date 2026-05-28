@@ -2,43 +2,39 @@
 /**
  * StatsDashboard — Capture Statistics Dashboard Component
  *
- * Displays packet capture analysis results in a responsive 3x2 card grid
+ * Displays packet capture analysis results in a responsive 2x2 card grid
  * with an Acknowledge button for session termination.
  *
  * @see plan.md §4 — Capture Statistics Dashboard
  */
 
-import { computed } from 'vue';
-import {
-  Layers,
-  HardDrive,
-  Clock,
-  CalendarRange,
-  CalendarClock,
-} from '@lucide/vue';
-import type { CaptureStatistics } from '../types';
+import { computed } from "vue";
+import { Layers, HardDrive, Clock, File } from "@lucide/vue";
+import type { CaptureStatistics } from "../types";
 
 /* ── Props & Emits ── */
 const props = defineProps<{
+  fileName: string;
+  fileSize: number;
   statistics: CaptureStatistics;
   isDeleting: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'acknowledge'): void;
+  (e: "acknowledge"): void;
 }>();
 
 /* ── Formatters ── */
 
 /** Format a number with locale-aware thousands separators */
 function formatNumber(n: number): string {
-  return n.toLocaleString('en-US');
+  return n.toLocaleString("en-US");
 }
 
 /** Format bytes to human-readable size */
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  const units = ['Bytes', 'KB', 'MB', 'GB'];
+  if (bytes === 0) return "0 Bytes";
+  const units = ["Bytes", "KB", "MB", "GB"];
   const k = 1024;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   const value = bytes / Math.pow(k, i);
@@ -50,67 +46,42 @@ function formatDuration(seconds: number): string {
   return `${seconds.toFixed(3)}s`;
 }
 
-/** Format ISO timestamp to readable format */
-function formatTimestamp(iso?: string): string {
-  if (!iso) return 'N/A';
-  try {
-    const date = new Date(iso);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-    const ms = String(date.getUTCMilliseconds()).padStart(3, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`;
-  } catch {
-    return 'N/A';
-  }
-}
-
 /* ── Computed Stats Cards ── */
 const cards = computed(() => [
   {
-    id: 'frames',
-    label: 'Frames',
+    id: "filename",
+    label: "File Name",
+    value: props.fileName,
+    icon: File,
+    color: "accent",
+  },
+  {
+    id: "filesize",
+    label: "File Size",
+    value: formatBytes(props.fileSize),
+    icon: HardDrive,
+    color: "accent",
+  },
+  {
+    id: "frames",
+    label: "Frames",
     value: formatNumber(props.statistics.frames),
     icon: Layers,
-    color: 'accent',
+    color: "accent",
   },
   {
-    id: 'bytes',
-    label: 'Bytes',
-    value: formatBytes(props.statistics.bytes),
-    icon: HardDrive,
-    color: 'accent',
-  },
-  {
-    id: 'duration',
-    label: 'Duration',
+    id: "duration",
+    label: "Duration",
     value: formatDuration(props.statistics.duration),
     icon: Clock,
-    color: 'accent',
-  },
-  {
-    id: 'first-packet',
-    label: 'First Packet',
-    value: formatTimestamp(props.statistics.firstPacketTime),
-    icon: CalendarRange,
-    color: 'success',
-  },
-  {
-    id: 'last-packet',
-    label: 'Last Packet',
-    value: formatTimestamp(props.statistics.lastPacketTime),
-    icon: CalendarClock,
-    color: 'success',
+    color: "accent",
   },
 ]);
 
 /* ── Handlers ── */
 function handleAcknowledge() {
   if (!props.isDeleting) {
-    emit('acknowledge');
+    emit("acknowledge");
   }
 }
 </script>
@@ -182,7 +153,7 @@ function handleAcknowledge() {
 /* ── Stats Grid ── */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
   width: 100%;
 }
@@ -207,11 +178,6 @@ function handleAcknowledge() {
   box-shadow: var(--shadow-glow-accent);
 }
 
-.stat-card--success:hover {
-  border-color: rgba(16, 185, 129, 0.2);
-  box-shadow: var(--shadow-glow-success);
-}
-
 .stat-card-header {
   display: flex;
   align-items: center;
@@ -220,10 +186,6 @@ function handleAcknowledge() {
 
 .stat-card-icon {
   color: var(--color-accent);
-}
-
-.stat-card--success .stat-card-icon {
-  color: var(--color-success);
 }
 
 .stat-card-label {
@@ -262,7 +224,9 @@ function handleAcknowledge() {
 
 .btn-acknowledge:hover:not(:disabled) {
   transform: scale(1.04);
-  box-shadow: var(--shadow-lg), 0 0 30px rgba(16, 185, 129, 0.3);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 30px rgba(16, 185, 129, 0.3);
 }
 
 .btn-acknowledge:active:not(:disabled) {
@@ -290,12 +254,6 @@ function handleAcknowledge() {
 }
 
 /* ── Responsive ── */
-@media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 480px) {
   .stats-grid {
     grid-template-columns: 1fr;

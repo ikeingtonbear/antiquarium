@@ -9,18 +9,18 @@
  * @see data-model.md §3 — Validation Rules
  */
 
-import { ref } from 'vue';
-import { Upload } from '@lucide/vue';
+import { ref } from "vue";
+import { Upload } from "@lucide/vue";
 import {
   EXTENSION_REGEX,
   MAX_FILE_SIZE_BYTES,
   MAX_FILE_SIZE_LABEL,
   ALLOWED_EXTENSIONS,
-} from '../types';
+} from "../types";
 
 /* ── Emits ── */
 const emit = defineEmits<{
-  (e: 'upload', file: File): void;
+  (e: "upload", file: File): void;
 }>();
 
 /* ── Reactive State ── */
@@ -32,7 +32,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 /* ── File Validation ── */
 function validateFile(file: File): string | null {
   if (!EXTENSION_REGEX.test(file.name)) {
-    return `Invalid file type: "${file.name}". Accepted: ${ALLOWED_EXTENSIONS.join(', ')}`;
+    return `Invalid file type: "${file.name}". Accepted: ${ALLOWED_EXTENSIONS.join(", ")}`;
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -59,7 +59,7 @@ function handleFile(file: File) {
     return;
   }
 
-  emit('upload', file);
+  emit("upload", file);
 }
 
 /* ── Input Change ── */
@@ -70,7 +70,7 @@ function onInputChange(event: Event) {
     handleFile(file);
   }
   /* Reset input so same file can be re-selected */
-  target.value = '';
+  target.value = "";
 }
 
 /* ── Drag Events ── */
@@ -109,7 +109,7 @@ function openFileDialog() {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Enter' || event.key === ' ') {
+  if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
     openFileDialog();
   }
@@ -154,12 +154,8 @@ function onKeydown(event: KeyboardEvent) {
           />
         </div>
 
-        <p class="dropzone-label">
-          Drag &amp; drop your capture file here
-        </p>
-        <p class="dropzone-sublabel text-secondary">
-          or click to browse
-        </p>
+        <p class="dropzone-label">Drag &amp; drop your capture file here</p>
+        <p class="dropzone-sublabel text-secondary">or click to browse</p>
 
         <div class="dropzone-meta">
           <span class="dropzone-extensions text-mono text-muted">
@@ -174,7 +170,11 @@ function onKeydown(event: KeyboardEvent) {
 
     <!-- Validation Error Message -->
     <Transition name="error-fade">
-      <p v-if="validationError" class="validation-error text-danger" role="alert">
+      <p
+        v-if="validationError"
+        class="validation-error text-danger"
+        role="alert"
+      >
         {{ validationError }}
       </p>
     </Transition>

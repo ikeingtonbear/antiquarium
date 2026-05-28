@@ -18,7 +18,7 @@ export interface CaptureSession {
   /** UUID assigned by the backend */
   id: string;
   /** Current session lifecycle status */
-  status: 'active' | 'closed';
+  status: "active" | "closed";
   /** ISO 8601 timestamp of session creation */
   createdAt: string;
 
@@ -37,14 +37,8 @@ export interface CaptureSession {
 export interface CaptureStatistics {
   /** Total number of packets/frames */
   frames: number;
-  /** Total capture size in bytes */
-  bytes: number;
   /** Duration of capture in seconds */
   duration: number;
-  /** ISO 8601 timestamp of the first packet (may be absent) */
-  firstPacketTime?: string;
-  /** ISO 8601 timestamp of the last packet (may be absent) */
-  lastPacketTime?: string;
 }
 
 /**
@@ -66,7 +60,7 @@ export interface ErrorPayload {
  *
  * @see data-model.md §2 — Client-Side Lifecycle & State Machine
  */
-export type AppState = 'idle' | 'uploading' | 'ready' | 'deleting';
+export type AppState = "idle" | "uploading" | "ready" | "deleting";
 
 /* ──────────────────────────────────────────────────────
    3. API CLIENT INTERFACE
@@ -85,7 +79,7 @@ export interface ApiClient {
    */
   createSession(
     file: File,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<CaptureSession>;
 
   /**
@@ -109,7 +103,7 @@ export interface ApiClient {
  * Allowed file extensions for upload (case-insensitive).
  * @see data-model.md §3 — Validation Rules
  */
-export const ALLOWED_EXTENSIONS = ['.pcap', '.pcapng', '.cap', '.dmp'] as const;
+export const ALLOWED_EXTENSIONS = [".pcap", ".pcapng", ".cap", ".dmp"] as const;
 
 /**
  * Regular expression matching allowed capture file extensions.
@@ -124,4 +118,4 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 /**
  * Maximum file size label for display.
  */
-export const MAX_FILE_SIZE_LABEL = '10 MB';
+export const MAX_FILE_SIZE_LABEL = "10 MB";

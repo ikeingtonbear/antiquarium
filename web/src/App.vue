@@ -9,15 +9,15 @@
  * @see data-model.md §2 — Client-Side Lifecycle & State Machine
  */
 
-import { ref, onMounted, onUnmounted, watch } from 'vue';
-import type { AppState, CaptureSession, CaptureStatistics } from './types';
-import FileUpload from './components/FileUpload.vue';
-import StatsDashboard from './components/StatsDashboard.vue';
-import ErrorNotification from './components/ErrorNotification.vue';
-import { SharkophagusApi } from './services/api';
+import { ref, onMounted, onUnmounted, watch } from "vue";
+import type { AppState, CaptureSession, CaptureStatistics } from "./types";
+import FileUpload from "./components/FileUpload.vue";
+import StatsDashboard from "./components/StatsDashboard.vue";
+import ErrorNotification from "./components/ErrorNotification.vue";
+import { SharkophagusApi } from "./services/api";
 
 /* ── Reactive State ── */
-const appState = ref<AppState>('idle');
+const appState = ref<AppState>("idle");
 const session = ref<CaptureSession | null>(null);
 const statistics = ref<CaptureStatistics | null>(null);
 const uploadProgress = ref<number>(0);
@@ -29,24 +29,24 @@ const api = new SharkophagusApi();
 
 /* ── Exit Protection ── */
 function handleBeforeUnload(e: BeforeUnloadEvent) {
-  if (appState.value === 'uploading' || appState.value === 'deleting') {
+  if (appState.value === "uploading" || appState.value === "deleting") {
     e.preventDefault();
     /* Modern browsers ignore custom text but still show a prompt */
-    e.returnValue = '';
+    e.returnValue = "";
   }
 }
 
 onMounted(() => {
-  window.addEventListener('beforeunload', handleBeforeUnload);
+  window.addEventListener("beforeunload", handleBeforeUnload);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload);
+  window.removeEventListener("beforeunload", handleBeforeUnload);
 });
 
 /* ── Upload Handler ── */
 async function handleUpload(file: File) {
-  appState.value = 'uploading';
+  appState.value = "uploading";
   uploadProgress.value = 0;
   errorMessage.value = null;
 
@@ -61,12 +61,12 @@ async function handleUpload(file: File) {
     const stats = await api.getStatistics(result.id);
     statistics.value = stats;
 
-    appState.value = 'ready';
+    appState.value = "ready";
   } catch (err: unknown) {
     const message =
-      err instanceof Error ? err.message : 'Upload failed. Please try again.';
+      err instanceof Error ? err.message : "Upload failed. Please try again.";
     errorMessage.value = message;
-    appState.value = 'idle';
+    appState.value = "idle";
     uploadProgress.value = 0;
   }
 }
@@ -75,7 +75,7 @@ async function handleUpload(file: File) {
 async function handleAcknowledge() {
   if (!session.value) return;
 
-  appState.value = 'deleting';
+  appState.value = "deleting";
   errorMessage.value = null;
 
   try {
@@ -85,9 +85,9 @@ async function handleAcknowledge() {
     const message =
       err instanceof Error
         ? err.message
-        : 'Failed to close session. Please try again.';
+        : "Failed to close session. Please try again.";
     errorMessage.value = message;
-    appState.value = 'ready';
+    appState.value = "ready";
   }
 }
 
@@ -100,7 +100,7 @@ async function resetToIdle() {
   session.value = null;
   statistics.value = null;
   uploadProgress.value = 0;
-  appState.value = 'idle';
+  appState.value = "idle";
 
   isTransitioning.value = false;
 }
@@ -187,8 +187,10 @@ function handleDismissError() {
         :class="{ 'is-exiting': isTransitioning }"
       >
         <StatsDashboard
-          v-if="statistics"
+          v-if="statistics && session"
           :statistics="statistics"
+          :file-name="session.fileName"
+          :file-size="session.fileSize"
           :is-deleting="appState === 'deleting'"
           @acknowledge="handleAcknowledge"
         />

@@ -10,7 +10,7 @@
  * @see plan.md §5 — Floating Error Notifications
  */
 
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from "vue";
 
 /* ── Props & Emits ── */
 const props = defineProps<{
@@ -18,7 +18,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'dismiss'): void;
+  (e: "dismiss"): void;
 }>();
 
 /* ── Auto-Dismiss Timer ── */
@@ -27,7 +27,7 @@ let timerId: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
   timerId = setTimeout(() => {
-    emit('dismiss');
+    emit("dismiss");
   }, AUTO_DISMISS_MS);
 });
 
@@ -43,16 +43,12 @@ function handleDismiss() {
     clearTimeout(timerId);
     timerId = null;
   }
-  emit('dismiss');
+  emit("dismiss");
 }
 </script>
 
 <template>
-  <div
-    class="error-toast"
-    role="alert"
-    aria-live="assertive"
-  >
+  <div class="error-toast" role="alert" aria-live="assertive">
     <div class="error-toast-content">
       <span class="error-toast-icon" aria-hidden="true">⚠️</span>
       <p class="error-toast-message">{{ message }}</p>
@@ -114,7 +110,9 @@ function handleDismiss() {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   border-radius: var(--radius-sm);
-  transition: color var(--duration-fast) ease, background var(--duration-fast) ease;
+  transition:
+    color var(--duration-fast) ease,
+    background var(--duration-fast) ease;
 }
 
 .error-toast-close:hover {
