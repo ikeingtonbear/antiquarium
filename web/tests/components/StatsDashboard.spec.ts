@@ -1,30 +1,27 @@
 /**
  * Unit Tests — StatsDashboard Component
  *
- * TDD: These tests are written BEFORE the component implementation
- * to drive the design of the StatsDashboard Vue SFC.
+ * TDD: These tests drive the design of the updated StatsDashboard Vue SFC.
  *
  * Tests cover:
- * - T017 [US2]: Session stats display format
+ * - T017 [US2]: Session stats display format (filename, filesize, frames, duration only)
  * - T022 [US3]: Session termination action and state reset
- *
- * @see plan.md §4 — Capture Statistics Dashboard
  */
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mount, VueWrapper } from '@vue/test-utils';
-import StatsDashboard from '@/components/StatsDashboard.vue';
-import type { CaptureStatistics } from '@/types';
+import { describe, it, expect, afterEach } from "vitest";
+import { mount, VueWrapper } from "@vue/test-utils";
+import StatsDashboard from "@/components/StatsDashboard.vue";
+import type { CaptureStatistics } from "@/types";
 
 const defaultStats: CaptureStatistics = {
   frames: 1280,
-  bytes: 524288,
   duration: 4.529,
-  firstPacketTime: '2026-05-21T18:00:00.001Z',
-  lastPacketTime: '2026-05-21T18:00:04.530Z',
 };
 
-describe('StatsDashboard', () => {
+const defaultFileName = "capture_traffic.pcapng";
+const defaultFileSize = 524288; // 512 KB
+
+describe("StatsDashboard", () => {
   let wrapper: VueWrapper;
 
   afterEach(() => {
@@ -35,75 +32,83 @@ describe('StatsDashboard', () => {
      T017 [US2]: Stats Display Format
      ────────────────────────────────────────────────── */
 
-  describe('Stats Display', () => {
-    it('renders the frames count', () => {
+  describe("Stats Display", () => {
+    it("renders the filename", () => {
       wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: false },
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: false,
+        },
       });
 
-      expect(wrapper.text()).toContain('1,280');
+      expect(wrapper.text()).toContain(defaultFileName);
     });
 
-    it('renders formatted byte size', () => {
+    it("renders the formatted file size", () => {
       wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: false },
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: false,
+        },
       });
 
       // 524288 bytes = 512.00 KB
-      expect(wrapper.text()).toContain('512');
+      expect(wrapper.text()).toContain("512.00 KB");
     });
 
-    it('renders duration formatted to 3 decimal places', () => {
+    it("renders the frames count", () => {
       wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: false },
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: false,
+        },
       });
 
-      expect(wrapper.text()).toContain('4.529');
+      expect(wrapper.text()).toContain("1,280");
     });
 
-    it('renders first packet time formatted', () => {
+    it("renders duration formatted to 3 decimal places", () => {
       wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: false },
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: false,
+        },
       });
 
-      // Should contain the formatted timestamp
-      expect(wrapper.text()).toContain('2026-05-21');
+      expect(wrapper.text()).toContain("4.529s");
     });
 
-    it('renders last packet time formatted', () => {
+    it("renders exactly four stat cards with appropriate labels", () => {
       wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: false },
-      });
-
-      expect(wrapper.text()).toContain('2026-05-21');
-    });
-
-    it('renders stat cards with appropriate labels', () => {
-      wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: false },
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: false,
+        },
       });
 
       const text = wrapper.text();
-      expect(text).toContain('Frames');
-      expect(text).toContain('Bytes');
-      expect(text).toContain('Duration');
-      expect(text).toContain('First Packet');
-      expect(text).toContain('Last Packet');
-    });
+      expect(text).toContain("File Name");
+      expect(text).toContain("File Size");
+      expect(text).toContain("Frames");
+      expect(text).toContain("Duration");
 
-    it('handles missing optional packet times gracefully', () => {
-      const statsNoTimes: CaptureStatistics = {
-        frames: 100,
-        bytes: 8192,
-        duration: 1.0,
-      };
+      // Assert that old cards are NOT rendered
+      expect(text).not.toContain("Bytes");
+      expect(text).not.toContain("First Packet");
+      expect(text).not.toContain("Last Packet");
 
-      wrapper = mount(StatsDashboard, {
-        props: { statistics: statsNoTimes, isDeleting: false },
-      });
-
-      // Should render N/A or similar for missing times
-      expect(wrapper.text()).toContain('N/A');
+      const cards = wrapper.findAll(".stat-card");
+      expect(cards.length).toBe(4);
     });
   });
 
@@ -111,39 +116,54 @@ describe('StatsDashboard', () => {
      T022 [US3]: Acknowledge Button & Session Termination
      ────────────────────────────────────────────────── */
 
-  describe('Acknowledge Button', () => {
-    it('renders an Acknowledge button', () => {
+  describe("Acknowledge Button", () => {
+    it("renders an Acknowledge button", () => {
       wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: false },
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: false,
+        },
       });
 
-      const btn = wrapper.find('button');
+      const btn = wrapper.find("button");
       expect(btn.exists()).toBe(true);
-      expect(btn.text()).toContain('Acknowledge');
+      expect(btn.text()).toContain("Acknowledge");
     });
 
     it('emits "acknowledge" when clicked', async () => {
       wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: false },
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: false,
+        },
       });
 
-      const btn = wrapper.find('button');
-      await btn.trigger('click');
+      const btn = wrapper.find("button");
+      await btn.trigger("click");
 
-      expect(wrapper.emitted('acknowledge')).toBeTruthy();
-      expect(wrapper.emitted('acknowledge')!.length).toBe(1);
+      expect(wrapper.emitted("acknowledge")).toBeTruthy();
+      expect(wrapper.emitted("acknowledge")!.length).toBe(1);
     });
 
-    it('disables button and shows spinner when isDeleting is true', () => {
+    it("disables button and shows spinner when isDeleting is true", () => {
       wrapper = mount(StatsDashboard, {
-        props: { statistics: defaultStats, isDeleting: true },
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: true,
+        },
       });
 
-      const btn = wrapper.find('button');
-      expect(btn.attributes('disabled')).toBeDefined();
+      const btn = wrapper.find("button");
+      expect(btn.attributes("disabled")).toBeDefined();
 
       // Should show a loading state
-      const spinner = wrapper.find('.btn-spinner');
+      const spinner = wrapper.find(".btn-spinner");
       expect(spinner.exists()).toBe(true);
     });
   });

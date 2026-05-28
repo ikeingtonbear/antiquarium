@@ -12,7 +12,7 @@ import type {
   CaptureSession,
   CaptureStatistics,
   ErrorPayload,
-} from '../types';
+} from "../types";
 
 /**
  * Concrete implementation of the ApiClient interface using the Fetch API.
@@ -31,9 +31,9 @@ export class SharkophagusApi implements ApiClient {
   constructor(baseUrl?: string) {
     this.baseUrl =
       baseUrl ??
-      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL
+      (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL
         ? import.meta.env.VITE_API_URL
-        : 'http://localhost:8080/v1');
+        : "http://localhost:8080/v1");
   }
 
   /**
@@ -46,10 +46,10 @@ export class SharkophagusApi implements ApiClient {
    */
   async createSession(
     file: File,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<CaptureSession> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
     let response: Response;
 
@@ -58,7 +58,7 @@ export class SharkophagusApi implements ApiClient {
       onProgress?.(10);
 
       response = await fetch(`${this.baseUrl}/sessions`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
 
@@ -66,7 +66,7 @@ export class SharkophagusApi implements ApiClient {
       onProgress?.(100);
     } catch {
       throw new Error(
-        'API server is unreachable. Please verify backend connection.'
+        "API server is unreachable. Please verify backend connection.",
       );
     }
 
@@ -93,18 +93,16 @@ export class SharkophagusApi implements ApiClient {
     let response: Response;
 
     try {
-      response = await fetch(
-        `${this.baseUrl}/sessions/${sessionId}/stats`
-      );
+      response = await fetch(`${this.baseUrl}/sessions/${sessionId}/stats`);
     } catch {
       throw new Error(
-        'API server is unreachable. Please verify backend connection.'
+        "API server is unreachable. Please verify backend connection.",
       );
     }
 
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error('Session expired. Resetting application...');
+        throw new Error("Session expired. Resetting application...");
       }
       const error = await this.parseError(response);
       throw new Error(error.message);
@@ -120,13 +118,12 @@ export class SharkophagusApi implements ApiClient {
     let response: Response;
 
     try {
-      response = await fetch(
-        `${this.baseUrl}/sessions/${sessionId}`,
-        { method: 'DELETE' }
-      );
+      response = await fetch(`${this.baseUrl}/sessions/${sessionId}`, {
+        method: "DELETE",
+      });
     } catch {
       throw new Error(
-        'API server is unreachable. Please verify backend connection.'
+        "API server is unreachable. Please verify backend connection.",
       );
     }
 
@@ -143,12 +140,13 @@ export class SharkophagusApi implements ApiClient {
     try {
       const body = await response.json();
       return {
-        code: body.code ?? 'UNKNOWN_ERROR',
-        message: body.message ?? `Request failed with status ${response.status}`,
+        code: body.code ?? "UNKNOWN_ERROR",
+        message:
+          body.message ?? `Request failed with status ${response.status}`,
       };
     } catch {
       return {
-        code: 'UNKNOWN_ERROR',
+        code: "UNKNOWN_ERROR",
         message: `Request failed with status ${response.status}`,
       };
     }
