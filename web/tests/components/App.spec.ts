@@ -17,6 +17,7 @@ vi.mock("@/services/api", () => {
   const MockApi = vi.fn();
   MockApi.prototype.createSession = vi.fn();
   MockApi.prototype.getStatistics = vi.fn();
+  MockApi.prototype.getAnalysis = vi.fn();
   MockApi.prototype.closeSession = vi.fn();
   return { SharkophagusApi: MockApi };
 });
@@ -71,7 +72,7 @@ describe("App", () => {
     expect(wrapper.text()).toContain("Uploading Capture");
   });
 
-  it("transitions to ready state after successful upload and stats fetch", async () => {
+  it("transitions to ready state after successful upload, stats, and analysis fetch", async () => {
     const mockApi = SharkophagusApi.prototype;
     (mockApi.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "session-1",
@@ -83,6 +84,14 @@ describe("App", () => {
     (mockApi.getStatistics as ReturnType<typeof vi.fn>).mockResolvedValue({
       frames: 100,
       duration: 1.5,
+      bytes: 1024,
+      filename: "test.pcap",
+    });
+    (mockApi.getAnalysis as ReturnType<typeof vi.fn>).mockResolvedValue({
+      frames: 100,
+      protocols: ["eth", "ip"],
+      first: 100,
+      last: 200,
     });
 
     wrapper = mount(App);
@@ -92,11 +101,21 @@ describe("App", () => {
     await fileUpload.vm.$emit("upload", file);
     await flushPromises();
 
-    // Should show stats dashboard
-    const statsDashboard = wrapper.findComponent({ name: "StatsDashboard" });
-    expect(statsDashboard.exists()).toBe(true);
-    expect(statsDashboard.props("fileName")).toBe("test.pcap");
-    expect(statsDashboard.props("fileSize")).toBe(1024);
+    // Should show analysis modal
+    const analysisModal = wrapper.findComponent({ name: "AnalysisModal" });
+    expect(analysisModal.exists()).toBe(true);
+    expect(analysisModal.props("statistics")).toEqual({
+      frames: 100,
+      duration: 1.5,
+      bytes: 1024,
+      filename: "test.pcap",
+    });
+    expect(analysisModal.props("analysis")).toEqual({
+      frames: 100,
+      protocols: ["eth", "ip"],
+      first: 100,
+      last: 200,
+    });
   });
 
   it("shows error notification on upload failure", async () => {
@@ -140,7 +159,7 @@ describe("App", () => {
     expect(errorToast.exists()).toBe(false);
   });
 
-  it("handles acknowledge and resets to idle", async () => {
+  it("handles acknowledge/close and resets to idle", async () => {
     const mockApi = SharkophagusApi.prototype;
     (mockApi.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "session-2",
@@ -152,6 +171,14 @@ describe("App", () => {
     (mockApi.getStatistics as ReturnType<typeof vi.fn>).mockResolvedValue({
       frames: 50,
       duration: 0.5,
+      bytes: 1024,
+      filename: "test.pcap",
+    });
+    (mockApi.getAnalysis as ReturnType<typeof vi.fn>).mockResolvedValue({
+      frames: 50,
+      protocols: ["eth"],
+      first: 5,
+      last: 10,
     });
     (mockApi.closeSession as ReturnType<typeof vi.fn>).mockResolvedValue(
       undefined,
@@ -164,9 +191,9 @@ describe("App", () => {
     await fileUpload.vm.$emit("upload", file);
     await flushPromises();
 
-    // Now acknowledge
-    const dashboard = wrapper.findComponent({ name: "StatsDashboard" });
-    await dashboard.vm.$emit("acknowledge");
+    // Now close
+    const modal = wrapper.findComponent({ name: "AnalysisModal" });
+    await modal.vm.$emit("close");
     await flushPromises();
 
     // Wait for the 300ms transition
@@ -190,6 +217,14 @@ describe("App", () => {
     (mockApi.getStatistics as ReturnType<typeof vi.fn>).mockResolvedValue({
       frames: 50,
       duration: 0.5,
+      bytes: 1024,
+      filename: "test.pcap",
+    });
+    (mockApi.getAnalysis as ReturnType<typeof vi.fn>).mockResolvedValue({
+      frames: 50,
+      protocols: ["eth"],
+      first: 5,
+      last: 10,
     });
     (mockApi.closeSession as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("Delete failed"),
@@ -202,12 +237,53 @@ describe("App", () => {
     await fileUpload.vm.$emit("upload", file);
     await flushPromises();
 
-    const dashboard = wrapper.findComponent({ name: "StatsDashboard" });
-    await dashboard.vm.$emit("acknowledge");
+    const modal = wrapper.findComponent({ name: "AnalysisModal" });
+    await modal.vm.$emit("close");
     await flushPromises();
 
     const errorToast = wrapper.findComponent({ name: "ErrorNotification" });
     expect(errorToast.exists()).toBe(true);
     expect(errorToast.props("message")).toBe("Delete failed");
+  });
+
+  /* ──────────────────────────────────────────────────
+     T010 [US2]: Stats/Analyse Failure Error Handling
+     ────────────────────────────────────────────────── */
+  it("shows error notification and resets to idle if stats or analysis fetch fails", async () => {
+    const mockApi = SharkophagusApi.prototype;
+    (mockApi.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "session-4",
+      status: "active",
+      fileName: "test.pcap",
+      fileSize: 1024,
+    });
+    (mockApi.getStatistics as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Stats endpoint failed"),
+    );
+    (mockApi.getAnalysis as ReturnType<typeof vi.fn>).mockResolvedValue({
+      frames: 10,
+      protocols: [],
+      first: 0,
+      last: 0,
+    });
+    (mockApi.closeSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+      undefined,
+    );
+
+    wrapper = mount(App);
+    const fileUpload = wrapper.findComponent({ name: "FileUpload" });
+
+    const file = new File(["data"], "test.pcap");
+    await fileUpload.vm.$emit("upload", file);
+    await flushPromises();
+
+    // Verify error toast is shown
+    const errorToast = wrapper.findComponent({ name: "ErrorNotification" });
+    expect(errorToast.exists()).toBe(true);
+    expect(errorToast.props("message")).toBe("Stats endpoint failed");
+
+    // UI should reset to idle (meaning FileUpload is back)
+    const fileUploadAgain = wrapper.findComponent({ name: "FileUpload" });
+    expect(fileUploadAgain.exists()).toBe(true);
   });
 });

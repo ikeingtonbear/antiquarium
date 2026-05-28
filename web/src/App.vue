@@ -10,9 +10,14 @@
  */
 
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import type { AppState, CaptureSession, CaptureStatistics } from "./types";
+import type {
+  AppState,
+  CaptureSession,
+  CaptureStatistics,
+  CaptureAnalysis,
+} from "./types";
 import FileUpload from "./components/FileUpload.vue";
-import StatsDashboard from "./components/StatsDashboard.vue";
+import AnalysisModal from "./components/AnalysisModal.vue";
 import ErrorNotification from "./components/ErrorNotification.vue";
 import { SharkophagusApi } from "./services/api";
 
@@ -20,6 +25,7 @@ import { SharkophagusApi } from "./services/api";
 const appState = ref<AppState>("idle");
 const session = ref<CaptureSession | null>(null);
 const statistics = ref<CaptureStatistics | null>(null);
+const analysis = ref<CaptureAnalysis | null>(null);
 const uploadProgress = ref<number>(0);
 const errorMessage = ref<string | null>(null);
 const isTransitioning = ref<boolean>(false);
@@ -50,22 +56,37 @@ async function handleUpload(file: File) {
   uploadProgress.value = 0;
   errorMessage.value = null;
 
+  let sessionResult: CaptureSession | null = null;
   try {
-    const result = await api.createSession(file, (progress) => {
+    sessionResult = await api.createSession(file, (progress) => {
       uploadProgress.value = progress;
     });
 
-    session.value = result;
+    session.value = sessionResult;
 
-    /* Fetch statistics immediately after upload */
-    const stats = await api.getStatistics(result.id);
+    /* Fetch statistics and analysis in parallel */
+    const [stats, analysisResult] = await Promise.all([
+      api.getStatistics(sessionResult.id),
+      api.getAnalysis(sessionResult.id),
+    ]);
     statistics.value = stats;
+    analysis.value = analysisResult;
 
     appState.value = "ready";
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : "Upload failed. Please try again.";
     errorMessage.value = message;
+
+    // Clean up session if it was created
+    if (sessionResult) {
+      try {
+        await api.closeSession(sessionResult.id);
+      } catch {
+        // Ignore background cleanup failures on error path
+      }
+    }
+
     appState.value = "idle";
     uploadProgress.value = 0;
   }
@@ -99,6 +120,7 @@ async function resetToIdle() {
 
   session.value = null;
   statistics.value = null;
+  analysis.value = null;
   uploadProgress.value = 0;
   appState.value = "idle";
 
@@ -179,20 +201,19 @@ function handleDismissError() {
         </div>
       </section>
 
-      <!-- State: READY / DELETING — Statistics Dashboard -->
+      <!-- State: READY / DELETING — Analysis Modal Overlay -->
       <section
         v-else-if="appState === 'ready' || appState === 'deleting'"
         key="dashboard"
         class="app-view"
         :class="{ 'is-exiting': isTransitioning }"
       >
-        <StatsDashboard
-          v-if="statistics && session"
+        <AnalysisModal
+          v-if="statistics && analysis && session"
           :statistics="statistics"
-          :file-name="session.fileName"
-          :file-size="session.fileSize"
-          :is-deleting="appState === 'deleting'"
-          @acknowledge="handleAcknowledge"
+          :analysis="analysis"
+          :is-closing="appState === 'deleting'"
+          @close="handleAcknowledge"
         />
       </section>
     </Transition>

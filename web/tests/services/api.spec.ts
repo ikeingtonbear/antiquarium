@@ -239,4 +239,51 @@ describe("SharkophagusApi", () => {
       );
     });
   });
+
+  /* ──────────────────────────────────────────────────
+     T004 [US1]: getAnalysis
+     ────────────────────────────────────────────────── */
+  describe("getAnalysis", () => {
+    it("sends a GET request to /sessions/{id}/analyse", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            frames: 10,
+            protocols: ["eth", "ip"],
+            first: 100.5,
+            last: 200.5,
+          }),
+      });
+
+      const result = await api.getAnalysis("session-123");
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe("http://localhost:8080/v1/sessions/session-123/analyse");
+      expect(result).toEqual({
+        frames: 10,
+        protocols: ["eth", "ip"],
+        first: 100.5,
+        last: 200.5,
+      });
+    });
+
+    it("throws on 404 (session not found)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: () =>
+          Promise.resolve({
+            code: "NOT_FOUND",
+            message: "Session not found",
+          }),
+      });
+
+      await expect(api.getAnalysis("expired-id")).rejects.toThrow(
+        "Session not found",
+      );
+    });
+  });
 });
