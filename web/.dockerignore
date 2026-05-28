@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.git/
+*.log*
+.env*
+coverage/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+Dockerfile*
+.dockerignore
+docker-compose*.yml
