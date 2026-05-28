@@ -39,6 +39,25 @@ export interface CaptureStatistics {
   frames: number;
   /** Duration of capture in seconds */
   duration: number;
+  /** File size in bytes */
+  bytes?: number;
+  /** Filename of the loaded PCAP */
+  filename?: string;
+}
+
+/**
+ * Capture analysis results returned from the
+ * backend `GET /sessions/{id}/analyse` endpoint.
+ */
+export interface CaptureAnalysis {
+  /** Total number of frames analysed */
+  frames: number;
+  /** List of protocols present in the capture */
+  protocols: string[];
+  /** Start time of the capture (epoch timestamp in seconds) */
+  first: number;
+  /** End time of the capture (epoch timestamp in seconds) */
+  last: number;
 }
 
 /**
@@ -87,6 +106,12 @@ export interface ApiClient {
    * @param sessionId - The UUID of the session
    */
   getStatistics(sessionId: string): Promise<CaptureStatistics>;
+
+  /**
+   * Fetches deep analysis results for an active session.
+   * @param sessionId - The UUID of the session
+   */
+  getAnalysis(sessionId: string): Promise<CaptureAnalysis>;
 
   /**
    * Closes and cleans up the active session.

@@ -11,6 +11,7 @@ import type {
   ApiClient,
   CaptureSession,
   CaptureStatistics,
+  CaptureAnalysis,
   ErrorPayload,
 } from "../types";
 
@@ -103,6 +104,31 @@ export class SharkophagusApi implements ApiClient {
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error("Session expired. Resetting application...");
+      }
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Fetches deep analysis results for an active session.
+   */
+  async getAnalysis(sessionId: string): Promise<CaptureAnalysis> {
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.baseUrl}/sessions/${sessionId}/analyse`);
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error("Session not found");
       }
       const error = await this.parseError(response);
       throw new Error(error.message);
