@@ -153,7 +153,7 @@ function handleClose() {
         >
           <span v-if="isClosing" class="btn-spinner" aria-hidden="true"></span>
           <span v-if="isClosing">Closing Session...</span>
-          <span v-else>Close &amp; End Session</span>
+          <span v-else>Close</span>
         </button>
       </footer>
     </div>

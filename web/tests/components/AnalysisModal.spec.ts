@@ -70,6 +70,7 @@ describe("AnalysisModal", () => {
 
     const btn = wrapper.find(".modal-close-btn");
     expect(btn.exists()).toBe(true);
+    expect(btn.text().trim()).toBe("Close");
     await btn.trigger("click");
 
     expect(wrapper.emitted("close")).toBeTruthy();

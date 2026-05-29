@@ -21,7 +21,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "acknowledge"): void;
+  (e: "end-session"): void;
+  (e: "show-details"): void;
 }>();
 
 /* ── Formatters ── */
@@ -115,16 +116,26 @@ function handleAcknowledge() {
       </div>
     </div>
 
-    <!-- Acknowledge Button -->
-    <button
-      class="btn-acknowledge"
-      :disabled="isDeleting"
-      @click="handleAcknowledge"
-    >
-      <span v-if="isDeleting" class="btn-spinner" aria-hidden="true"></span>
-      <span v-if="isDeleting">Closing Session...</span>
-      <span v-else>✓ Acknowledge &amp; Close</span>
-    </button>
+    <!-- Actions Bar -->
+    <div class="dashboard-actions">
+      <button
+        class="btn-end-session"
+        :disabled="isDeleting"
+        @click="emit('end-session')"
+      >
+        <span v-if="isDeleting" class="btn-spinner" aria-hidden="true"></span>
+        <span v-if="isDeleting">Closing Session...</span>
+        <span v-else>End Session</span>
+      </button>
+
+      <button
+        class="btn-view-details"
+        :disabled="isDeleting"
+        @click="emit('show-details')"
+      >
+        View Analysis Details
+      </button>
+    </div>
   </div>
 </template>
 
@@ -202,8 +213,16 @@ function handleAcknowledge() {
   word-break: break-all;
 }
 
-/* ── Acknowledge Button ── */
-.btn-acknowledge {
+/* ── Actions Bar ── */
+.dashboard-actions {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.btn-end-session {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -212,35 +231,64 @@ function handleAcknowledge() {
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   color: white;
-  background: linear-gradient(135deg, var(--color-success), #059669);
+  background: linear-gradient(135deg, var(--color-danger), #b91c1c);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md), var(--shadow-glow-success);
+  box-shadow: var(--shadow-md), var(--shadow-glow-danger);
   transition:
     transform var(--duration-normal) var(--ease-spring),
     box-shadow var(--duration-normal) ease,
     opacity var(--duration-normal) ease;
-  min-width: 220px;
+  min-width: 180px;
 }
 
-.btn-acknowledge:hover:not(:disabled) {
+.btn-end-session:hover:not(:disabled) {
   transform: scale(1.04);
   box-shadow:
     var(--shadow-lg),
-    0 0 30px rgba(16, 185, 129, 0.3);
+    0 0 30px rgba(244, 63, 94, 0.3);
 }
 
-.btn-acknowledge:active:not(:disabled) {
+.btn-end-session:active:not(:disabled) {
   transform: scale(0.98);
 }
 
-.btn-acknowledge:focus-visible {
-  outline: 2px solid var(--color-success);
+.btn-end-session:focus-visible {
+  outline: 2px solid var(--color-danger);
   outline-offset: 2px;
 }
 
-.btn-acknowledge:disabled {
+.btn-end-session:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.btn-view-details {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border-glass);
+  border-radius: var(--radius-lg);
+  transition:
+    transform var(--duration-normal) var(--ease-spring),
+    background var(--duration-normal) ease,
+    border-color var(--duration-normal) ease;
+  min-width: 180px;
+}
+
+.btn-view-details:hover:not(:disabled) {
+  transform: scale(1.04);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--color-border-hover);
+}
+
+.btn-view-details:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 /* ── Spinner ── */

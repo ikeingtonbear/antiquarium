@@ -19,8 +19,11 @@ import type {
 } from "./types";
 import FileUpload from "./components/FileUpload.vue";
 import AnalysisModal from "./components/AnalysisModal.vue";
+import StatsDashboard from "./components/StatsDashboard.vue";
 import ErrorNotification from "./components/ErrorNotification.vue";
 import AppFooter from "./components/AppFooter.vue";
+import SystemInfoModal from "./components/SystemInfoModal.vue";
+import SettingsMenu from "./components/SettingsMenu.vue";
 import { SharkophagusApi } from "./services/api";
 
 /* ── Reactive State ── */
@@ -31,6 +34,7 @@ const analysis = ref<CaptureAnalysis | null>(null);
 const uploadProgress = ref<number>(0);
 const errorMessage = ref<string | null>(null);
 const isTransitioning = ref<boolean>(false);
+const isAnalysisModalOpen = ref<boolean>(false);
 
 /* ── System Info State ── */
 const systemInfo = ref<SystemInfo | null>(null);
@@ -96,6 +100,7 @@ async function handleUpload(file: File) {
     analysis.value = analysisResult;
 
     appState.value = "ready";
+    isAnalysisModalOpen.value = true;
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : "Upload failed. Please try again.";
@@ -229,19 +234,29 @@ function handleOpenInfo() {
         </div>
       </section>
 
-      <!-- State: READY / DELETING — Analysis Modal Overlay -->
+      <!-- State: READY / DELETING — Stats Dashboard and Analysis Modal Overlay -->
       <section
         v-else-if="appState === 'ready' || appState === 'deleting'"
         key="dashboard"
         class="app-view"
         :class="{ 'is-exiting': isTransitioning }"
       >
+        <StatsDashboard
+          v-if="statistics && session"
+          :statistics="statistics"
+          :file-name="session.fileName"
+          :file-size="session.fileSize"
+          :is-deleting="appState === 'deleting'"
+          @end-session="handleAcknowledge"
+          @show-details="isAnalysisModalOpen = true"
+        />
+
         <AnalysisModal
-          v-if="statistics && analysis && session"
+          v-if="isAnalysisModalOpen && statistics && analysis && session"
           :statistics="statistics"
           :analysis="analysis"
           :is-closing="appState === 'deleting'"
-          @close="handleAcknowledge"
+          @close="isAnalysisModalOpen = false"
         />
       </section>
     </Transition>
@@ -252,7 +267,19 @@ function handleOpenInfo() {
       :is-online="isOnline"
       :is-loading="isInfoLoading"
       :error="infoError"
+    />
+
+    <!-- Settings Menu Toggle -->
+    <SettingsMenu
+      v-if="isOnline && !isInfoLoading && systemInfo"
       @open-info="handleOpenInfo"
+    />
+
+    <!-- System Capabilities Modal -->
+    <SystemInfoModal
+      :is-open="isInfoModalOpen"
+      :system-info="systemInfo"
+      @close="isInfoModalOpen = false"
     />
   </main>
 </template>

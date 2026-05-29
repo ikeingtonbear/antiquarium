@@ -50,7 +50,7 @@ describe("AppFooter", () => {
     expect(wrapper.find(".info-btn").exists()).toBe(false);
   });
 
-  it("renders online status and version stamp when system is online", () => {
+  it("renders online status without version stamp when system is online", () => {
     const wrapper = mount(AppFooter, {
       props: {
         systemInfo: mockSystemInfo,
@@ -60,26 +60,9 @@ describe("AppFooter", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Sharkophagus v1.0.0-test");
+    expect(wrapper.text()).toContain("Sharkophagus online");
+    expect(wrapper.text()).not.toContain("v1.0.0-test");
     expect(wrapper.find(".online-indicator").exists()).toBe(true);
-    expect(wrapper.find(".info-btn").exists()).toBe(true);
-  });
-
-  it("emits open-info event when info button is clicked", async () => {
-    const wrapper = mount(AppFooter, {
-      props: {
-        systemInfo: mockSystemInfo,
-        isOnline: true,
-        isLoading: false,
-        error: null,
-      },
-    });
-
-    const infoBtn = wrapper.find(".info-btn");
-    expect(infoBtn.exists()).toBe(true);
-    await infoBtn.trigger("click");
-
-    expect(wrapper.emitted("open-info")).toBeTruthy();
-    expect(wrapper.emitted("open-info")?.length).toBe(1);
+    expect(wrapper.find(".info-btn").exists()).toBe(false);
   });
 });

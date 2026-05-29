@@ -113,11 +113,11 @@ describe("StatsDashboard", () => {
   });
 
   /* ──────────────────────────────────────────────────
-     T022 [US3]: Acknowledge Button & Session Termination
+     T022 [US3]: End Session and View Details Buttons
      ────────────────────────────────────────────────── */
 
-  describe("Acknowledge Button", () => {
-    it("renders an Acknowledge button", () => {
+  describe("Action Buttons", () => {
+    it("renders End Session and View Details buttons", () => {
       wrapper = mount(StatsDashboard, {
         props: {
           statistics: defaultStats,
@@ -127,12 +127,13 @@ describe("StatsDashboard", () => {
         },
       });
 
-      const btn = wrapper.find("button");
-      expect(btn.exists()).toBe(true);
-      expect(btn.text()).toContain("Acknowledge");
+      const buttons = wrapper.findAll("button");
+      expect(buttons.length).toBe(2);
+      expect(buttons[0].text()).toContain("End Session");
+      expect(buttons[1].text()).toContain("View Analysis Details");
     });
 
-    it('emits "acknowledge" when clicked', async () => {
+    it('emits "end-session" when End Session button clicked', async () => {
       wrapper = mount(StatsDashboard, {
         props: {
           statistics: defaultStats,
@@ -142,14 +143,31 @@ describe("StatsDashboard", () => {
         },
       });
 
-      const btn = wrapper.find("button");
+      const btn = wrapper.findAll("button")[0];
       await btn.trigger("click");
 
-      expect(wrapper.emitted("acknowledge")).toBeTruthy();
-      expect(wrapper.emitted("acknowledge")!.length).toBe(1);
+      expect(wrapper.emitted("end-session")).toBeTruthy();
+      expect(wrapper.emitted("end-session")!.length).toBe(1);
     });
 
-    it("disables button and shows spinner when isDeleting is true", () => {
+    it('emits "show-details" when View Details button clicked', async () => {
+      wrapper = mount(StatsDashboard, {
+        props: {
+          statistics: defaultStats,
+          fileName: defaultFileName,
+          fileSize: defaultFileSize,
+          isDeleting: false,
+        },
+      });
+
+      const btn = wrapper.findAll("button")[1];
+      await btn.trigger("click");
+
+      expect(wrapper.emitted("show-details")).toBeTruthy();
+      expect(wrapper.emitted("show-details")!.length).toBe(1);
+    });
+
+    it("disables End Session button and shows spinner when isDeleting is true", () => {
       wrapper = mount(StatsDashboard, {
         props: {
           statistics: defaultStats,
@@ -159,10 +177,9 @@ describe("StatsDashboard", () => {
         },
       });
 
-      const btn = wrapper.find("button");
+      const btn = wrapper.findAll("button")[0];
       expect(btn.attributes("disabled")).toBeDefined();
 
-      // Should show a loading state
       const spinner = wrapper.find(".btn-spinner");
       expect(spinner.exists()).toBe(true);
     });
