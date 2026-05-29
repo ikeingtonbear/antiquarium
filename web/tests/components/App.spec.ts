@@ -19,6 +19,7 @@ vi.mock("@/services/api", () => {
   MockApi.prototype.getStatistics = vi.fn();
   MockApi.prototype.getAnalysis = vi.fn();
   MockApi.prototype.closeSession = vi.fn();
+  MockApi.prototype.getSystemInfo = vi.fn();
   return { SharkophagusApi: MockApi };
 });
 
@@ -27,6 +28,23 @@ describe("App", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    const mockApi = SharkophagusApi.prototype;
+    (mockApi.getSystemInfo as ReturnType<typeof vi.fn>).mockResolvedValue({
+      version: "1.0.0",
+      columns: [],
+      stats: [],
+      ftypes: [],
+      capture_types: [],
+      encap_types: [],
+      nstat: [],
+      convs: [],
+      seqa: [],
+      taps: [],
+      eo: [],
+      srt: [],
+      rtd: [],
+      follow: [],
+    });
   });
 
   afterEach(() => {
@@ -285,5 +303,51 @@ describe("App", () => {
     // UI should reset to idle (meaning FileUpload is back)
     const fileUploadAgain = wrapper.findComponent({ name: "FileUpload" });
     expect(fileUploadAgain.exists()).toBe(true);
+  });
+
+  /* ──────────────────────────────────────────────────
+     T005 [US1]: App Mount Queries Info
+     ────────────────────────────────────────────────── */
+  it("queries getSystemInfo on mount and displays footer info", async () => {
+    const mockApi = SharkophagusApi.prototype;
+    (mockApi.getSystemInfo as ReturnType<typeof vi.fn>).mockResolvedValue({
+      version: "2.4.6-test",
+      columns: [],
+      stats: [],
+      ftypes: [],
+      capture_types: [],
+      encap_types: [],
+      nstat: [],
+      convs: [],
+      seqa: [],
+      taps: [],
+      eo: [],
+      srt: [],
+      rtd: [],
+      follow: [],
+    });
+
+    wrapper = mount(App);
+    await flushPromises();
+
+    expect(mockApi.getSystemInfo).toHaveBeenCalledOnce();
+    const footer = wrapper.findComponent({ name: "AppFooter" });
+    expect(footer.exists()).toBe(true);
+    expect(footer.text()).toContain("Sharkophagus v2.4.6-test");
+  });
+
+  it("handles getSystemInfo failure on mount and updates footer", async () => {
+    const mockApi = SharkophagusApi.prototype;
+    (mockApi.getSystemInfo as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Offline"),
+    );
+
+    wrapper = mount(App);
+    await flushPromises();
+
+    expect(mockApi.getSystemInfo).toHaveBeenCalledOnce();
+    const footer = wrapper.findComponent({ name: "AppFooter" });
+    expect(footer.exists()).toBe(true);
+    expect(footer.text()).toContain("Sharkophagus offline");
   });
 });

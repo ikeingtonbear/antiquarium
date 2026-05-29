@@ -13,6 +13,7 @@ import type {
   CaptureStatistics,
   CaptureAnalysis,
   ErrorPayload,
+  SystemInfo,
 } from "../types";
 
 /**
@@ -157,6 +158,28 @@ export class SharkophagusApi implements ApiClient {
       const error = await this.parseError(response);
       throw new Error(error.message);
     }
+  }
+
+  /**
+   * Fetches general system info and capabilities from the backend.
+   */
+  async getSystemInfo(): Promise<SystemInfo> {
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.baseUrl}/info`);
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return response.json();
   }
 
   /**
