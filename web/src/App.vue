@@ -15,10 +15,12 @@ import type {
   CaptureSession,
   CaptureStatistics,
   CaptureAnalysis,
+  SystemInfo,
 } from "./types";
 import FileUpload from "./components/FileUpload.vue";
 import AnalysisModal from "./components/AnalysisModal.vue";
 import ErrorNotification from "./components/ErrorNotification.vue";
+import AppFooter from "./components/AppFooter.vue";
 import { SharkophagusApi } from "./services/api";
 
 /* ── Reactive State ── */
@@ -29,6 +31,13 @@ const analysis = ref<CaptureAnalysis | null>(null);
 const uploadProgress = ref<number>(0);
 const errorMessage = ref<string | null>(null);
 const isTransitioning = ref<boolean>(false);
+
+/* ── System Info State ── */
+const systemInfo = ref<SystemInfo | null>(null);
+const isOnline = ref<boolean>(false);
+const isInfoLoading = ref<boolean>(false);
+const infoError = ref<string | null>(null);
+const isInfoModalOpen = ref<boolean>(false);
 
 /* ── API Client ── */
 const api = new SharkophagusApi();
@@ -42,8 +51,22 @@ function handleBeforeUnload(e: BeforeUnloadEvent) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener("beforeunload", handleBeforeUnload);
+
+  /* Query system info on load */
+  isInfoLoading.value = true;
+  infoError.value = null;
+  try {
+    systemInfo.value = await api.getSystemInfo();
+    isOnline.value = true;
+  } catch (err: unknown) {
+    isOnline.value = false;
+    infoError.value =
+      err instanceof Error ? err.message : "Failed to load system info.";
+  } finally {
+    isInfoLoading.value = false;
+  }
 });
 
 onUnmounted(() => {
@@ -131,6 +154,11 @@ async function resetToIdle() {
 function handleDismissError() {
   errorMessage.value = null;
 }
+
+/* ── Capabilities Modal Actions ── */
+function handleOpenInfo() {
+  isInfoModalOpen.value = true;
+}
 </script>
 
 <template>
@@ -217,6 +245,15 @@ function handleDismissError() {
         />
       </section>
     </Transition>
+
+    <!-- Global App Footer -->
+    <AppFooter
+      :system-info="systemInfo"
+      :is-online="isOnline"
+      :is-loading="isInfoLoading"
+      :error="infoError"
+      @open-info="handleOpenInfo"
+    />
   </main>
 </template>
 

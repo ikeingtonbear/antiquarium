@@ -60,6 +60,38 @@ export interface CaptureAnalysis {
   last: number;
 }
 
+export interface InfoColumn {
+  name: string;
+  format: string;
+}
+
+export interface InfoItem {
+  name: string;
+  tap: string;
+}
+
+export interface InfoType {
+  name: string;
+  description: string;
+}
+
+export interface SystemInfo {
+  version: string;
+  columns: InfoColumn[];
+  stats: InfoItem[];
+  ftypes: string[];
+  capture_types: InfoType[];
+  encap_types: InfoType[];
+  nstat: InfoItem[];
+  convs: InfoItem[];
+  seqa: InfoItem[];
+  taps: InfoItem[];
+  eo: InfoItem[];
+  srt: InfoItem[];
+  rtd: InfoItem[];
+  follow: InfoItem[];
+}
+
 /**
  * Standard shape for error responses returned from the backend API.
  */
@@ -118,6 +150,11 @@ export interface ApiClient {
    * @param sessionId - The UUID of the session
    */
   closeSession(sessionId: string): Promise<void>;
+
+  /**
+   * Fetches general system info and capabilities from the backend.
+   */
+  getSystemInfo(): Promise<SystemInfo>;
 }
 
 /* ──────────────────────────────────────────────────────

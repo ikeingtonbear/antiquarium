@@ -286,4 +286,57 @@ describe("SharkophagusApi", () => {
       );
     });
   });
+
+  /* ──────────────────────────────────────────────────
+     T002 [US1]: getSystemInfo
+     ────────────────────────────────────────────────── */
+  describe("getSystemInfo", () => {
+    it("sends a GET request to /info", async () => {
+      const mockInfo = {
+        version: "1.2.3",
+        columns: [{ name: "No.", format: "%m" }],
+        stats: [{ name: "Taps", tap: "taps" }],
+        ftypes: ["ip", "tcp"],
+        capture_types: [{ name: "pcap", description: "PCAP" }],
+        encap_types: [{ name: "ether", description: "Ethernet" }],
+        nstat: [],
+        convs: [],
+        seqa: [],
+        taps: [],
+        eo: [],
+        srt: [],
+        rtd: [],
+        follow: [],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockInfo),
+      });
+
+      const result = await api.getSystemInfo();
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe("http://localhost:8080/v1/info");
+      expect(result).toEqual(mockInfo);
+    });
+
+    it("throws on server error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: () =>
+          Promise.resolve({
+            code: "INTERNAL_ERROR",
+            message: "Internal server error",
+          }),
+      });
+
+      await expect(api.getSystemInfo()).rejects.toThrow(
+        "Internal server error",
+      );
+    });
+  });
 });
