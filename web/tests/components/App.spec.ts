@@ -177,7 +177,58 @@ describe("App", () => {
     expect(errorToast.exists()).toBe(false);
   });
 
-  it("handles acknowledge/close and resets to idle", async () => {
+  it("closes the analysis modal overlay without terminating the session", async () => {
+    const mockApi = SharkophagusApi.prototype;
+    (mockApi.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "session-2",
+      status: "active",
+      createdAt: "2026-01-01T00:00:00Z",
+      fileName: "test.pcap",
+      fileSize: 1024,
+    });
+    (mockApi.getStatistics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      frames: 50,
+      duration: 0.5,
+      bytes: 1024,
+      filename: "test.pcap",
+    });
+    (mockApi.getAnalysis as ReturnType<typeof vi.fn>).mockResolvedValue({
+      frames: 50,
+      protocols: ["eth"],
+      first: 5,
+      last: 10,
+    });
+
+    wrapper = mount(App);
+    const fileUpload = wrapper.findComponent({ name: "FileUpload" });
+
+    const file = new File(["data"], "test.pcap");
+    await fileUpload.vm.$emit("upload", file);
+    await flushPromises();
+
+    // Verify modal is open initially
+    let modal = wrapper.findComponent({ name: "AnalysisModal" });
+    expect(modal.exists()).toBe(true);
+
+    // Close the modal
+    await modal.vm.$emit("close");
+    await flushPromises();
+
+    // Modal should now be closed/hidden
+    modal = wrapper.findComponent({ name: "AnalysisModal" });
+    expect(modal.exists()).toBe(false);
+
+    // StatsDashboard should be visible
+    const dashboard = wrapper.findComponent({ name: "StatsDashboard" });
+    expect(dashboard.exists()).toBe(true);
+    expect(dashboard.props("fileName")).toBe("test.pcap");
+
+    // Should not be back to idle
+    const fileUploadAgain = wrapper.findComponent({ name: "FileUpload" });
+    expect(fileUploadAgain.exists()).toBe(false);
+  });
+
+  it("handles end-session and resets to idle", async () => {
     const mockApi = SharkophagusApi.prototype;
     (mockApi.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "session-2",
@@ -209,16 +260,23 @@ describe("App", () => {
     await fileUpload.vm.$emit("upload", file);
     await flushPromises();
 
-    // Now close
+    // Close modal to see the dashboard
     const modal = wrapper.findComponent({ name: "AnalysisModal" });
     await modal.vm.$emit("close");
+    await flushPromises();
+
+    const dashboard = wrapper.findComponent({ name: "StatsDashboard" });
+    expect(dashboard.exists()).toBe(true);
+
+    // Trigger end-session
+    await dashboard.vm.$emit("end-session");
     await flushPromises();
 
     // Wait for the 300ms transition
     await new Promise((r) => setTimeout(r, 350));
     await flushPromises();
 
-    // Should be back to idle with FileUpload visible
+    // Should be back to idle
     const fileUploadAgain = wrapper.findComponent({ name: "FileUpload" });
     expect(fileUploadAgain.exists()).toBe(true);
   });
@@ -255,8 +313,13 @@ describe("App", () => {
     await fileUpload.vm.$emit("upload", file);
     await flushPromises();
 
+    // Close modal
     const modal = wrapper.findComponent({ name: "AnalysisModal" });
     await modal.vm.$emit("close");
+    await flushPromises();
+
+    const dashboard = wrapper.findComponent({ name: "StatsDashboard" });
+    await dashboard.vm.$emit("end-session");
     await flushPromises();
 
     const errorToast = wrapper.findComponent({ name: "ErrorNotification" });
@@ -333,7 +396,7 @@ describe("App", () => {
     expect(mockApi.getSystemInfo).toHaveBeenCalledOnce();
     const footer = wrapper.findComponent({ name: "AppFooter" });
     expect(footer.exists()).toBe(true);
-    expect(footer.text()).toContain("Sharkophagus v2.4.6-test");
+    expect(footer.text()).toContain("Sharkophagus online");
   });
 
   it("handles getSystemInfo failure on mount and updates footer", async () => {
@@ -349,5 +412,28 @@ describe("App", () => {
     const footer = wrapper.findComponent({ name: "AppFooter" });
     expect(footer.exists()).toBe(true);
     expect(footer.text()).toContain("Sharkophagus offline");
+  });
+
+  it("renders SettingsMenu and opens SystemInfoModal when open-info event is emitted", async () => {
+    wrapper = mount(App);
+    await flushPromises();
+
+    // Verify SettingsMenu is rendered
+    const settingsMenu = wrapper.findComponent({ name: "SettingsMenu" });
+    expect(settingsMenu.exists()).toBe(true);
+
+    // Modal should be closed initially
+    let infoModal = wrapper.findComponent({ name: "SystemInfoModal" });
+    expect(infoModal.exists()).toBe(true);
+    expect(infoModal.props("isOpen")).toBe(false);
+
+    // Emit open-info
+    await settingsMenu.vm.$emit("open-info");
+    await flushPromises();
+
+    // Modal should be open now
+    infoModal = wrapper.findComponent({ name: "SystemInfoModal" });
+    expect(infoModal.exists()).toBe(true);
+    expect(infoModal.props("isOpen")).toBe(true);
   });
 });

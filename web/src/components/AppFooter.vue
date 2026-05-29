@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { Info } from "@lucide/vue";
+import { computed } from "vue";
 import type { SystemInfo } from "../types";
-import SystemInfoModal from "./SystemInfoModal.vue";
 
 const props = defineProps<{
   systemInfo: SystemInfo | null;
@@ -11,22 +9,11 @@ const props = defineProps<{
   error: string | null;
 }>();
 
-const emit = defineEmits<{
-  (e: "open-info"): void;
-}>();
-
-const isModalOpen = ref(false);
-
 const statusText = computed(() => {
   if (props.isLoading) return "Loading system info...";
   if (!props.isOnline || props.error) return "Sharkophagus offline";
-  return `Sharkophagus v${props.systemInfo?.version || "unknown"}`;
+  return "Sharkophagus online";
 });
-
-function handleInfoClick() {
-  isModalOpen.value = true;
-  emit("open-info");
-}
 </script>
 
 <template>
@@ -51,24 +38,8 @@ function handleInfoClick() {
           {{ statusText }}
         </span>
       </div>
-
-      <button
-        v-if="props.isOnline && !props.isLoading && props.systemInfo"
-        class="info-btn"
-        @click="handleInfoClick"
-        aria-label="View system capabilities"
-        title="View system capabilities"
-      >
-        <Info class="info-icon" size="16" />
-      </button>
     </div>
   </footer>
-
-  <SystemInfoModal
-    :is-open="isModalOpen"
-    :system-info="props.systemInfo"
-    @close="isModalOpen = false"
-  />
 </template>
 
 <style scoped>
