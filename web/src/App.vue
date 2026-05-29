@@ -9,7 +9,7 @@
  * @see data-model.md §2 — Client-Side Lifecycle & State Machine
  */
 
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch, provide } from "vue";
 import type {
   AppState,
   CaptureSession,
@@ -24,6 +24,7 @@ import ErrorNotification from "./components/ErrorNotification.vue";
 import AppFooter from "./components/AppFooter.vue";
 import SystemInfoModal from "./components/SystemInfoModal.vue";
 import SettingsMenu from "./components/SettingsMenu.vue";
+import ConfigModal from "./components/ConfigModal.vue";
 import { SharkophagusApi } from "./services/api";
 
 /* ── Reactive State ── */
@@ -42,9 +43,11 @@ const isOnline = ref<boolean>(false);
 const isInfoLoading = ref<boolean>(false);
 const infoError = ref<string | null>(null);
 const isInfoModalOpen = ref<boolean>(false);
+const isPreferencesOpen = ref<boolean>(false);
 
 /* ── API Client ── */
 const api = new SharkophagusApi();
+provide("api", api);
 
 /* ── Exit Protection ── */
 function handleBeforeUnload(e: BeforeUnloadEvent) {
@@ -273,6 +276,7 @@ function handleOpenInfo() {
     <SettingsMenu
       v-if="isOnline && !isInfoLoading && systemInfo"
       @open-info="handleOpenInfo"
+      @open-preferences="isPreferencesOpen = true"
     />
 
     <!-- System Capabilities Modal -->
@@ -280,6 +284,13 @@ function handleOpenInfo() {
       :is-open="isInfoModalOpen"
       :system-info="systemInfo"
       @close="isInfoModalOpen = false"
+    />
+
+    <!-- Config Preferences Modal -->
+    <ConfigModal
+      :is-open="isPreferencesOpen"
+      :session-id="session?.id || null"
+      @close="isPreferencesOpen = false"
     />
   </main>
 </template>

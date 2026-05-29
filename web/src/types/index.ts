@@ -92,6 +92,26 @@ export interface SystemInfo {
   follow: InfoItem[];
 }
 
+export interface ConfigEnumChoice {
+  value: number;
+  description: string;
+  default: boolean;
+}
+
+export interface ConfigPreference {
+  name: string;
+  type:
+    | "boolean"
+    | "string"
+    | "integer"
+    | "range"
+    | "enum"
+    | "table"
+    | "unknown";
+  value: any;
+  choices?: ConfigEnumChoice[];
+}
+
 /**
  * Standard shape for error responses returned from the backend API.
  */
@@ -155,6 +175,24 @@ export interface ApiClient {
    * Fetches general system info and capabilities from the backend.
    */
   getSystemInfo(): Promise<SystemInfo>;
+
+  /**
+   * Fetches the Wireshark system configuration settings from the backend.
+   * @param pref - Optional name of a specific configuration preference to retrieve
+   */
+  getSystemConfig(pref?: string): Promise<ConfigPreference[]>;
+
+  /**
+   * Updates a configuration preference for the active session.
+   * @param sessionId - The active capture session UUID
+   * @param name - The configuration preference name
+   * @param value - The new configuration value
+   */
+  updateSessionConfig(
+    sessionId: string,
+    name: string,
+    value: any,
+  ): Promise<void>;
 }
 
 /* ──────────────────────────────────────────────────────
