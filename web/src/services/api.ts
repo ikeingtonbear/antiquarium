@@ -14,6 +14,7 @@ import type {
   CaptureAnalysis,
   ErrorPayload,
   SystemInfo,
+  ConfigPreference,
 } from "../types";
 
 /**
@@ -180,6 +181,65 @@ export class SharkophagusApi implements ApiClient {
     }
 
     return response.json();
+  }
+
+  /**
+   * Fetches the Wireshark system configuration settings from the backend.
+   * @param pref - Optional name of a specific configuration preference to retrieve
+   */
+  async getSystemConfig(pref?: string): Promise<ConfigPreference[]> {
+    let response: Response;
+    const url = pref
+      ? `${this.baseUrl}/config?pref=${encodeURIComponent(pref)}`
+      : `${this.baseUrl}/config`;
+
+    try {
+      response = await fetch(url);
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Updates a configuration preference for the active session.
+   * @param sessionId - The active capture session UUID
+   * @param name - The configuration preference name
+   * @param value - The new configuration value
+   */
+  async updateSessionConfig(
+    sessionId: string,
+    name: string,
+    value: any,
+  ): Promise<void> {
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.baseUrl}/sessions/${sessionId}/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, value }),
+      });
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
   }
 
   /**

@@ -7,6 +7,7 @@ const containerRef = ref<HTMLElement | null>(null);
 
 const emit = defineEmits<{
   (e: "open-info"): void;
+  (e: "open-preferences"): void;
 }>();
 
 function toggleMenu() {
@@ -16,6 +17,11 @@ function toggleMenu() {
 function handleInfoClick() {
   isOpen.value = false;
   emit("open-info");
+}
+
+function handlePreferencesClick() {
+  isOpen.value = false;
+  emit("open-preferences");
 }
 
 function handleClickOutside(event: MouseEvent) {
@@ -57,6 +63,14 @@ onUnmounted(() => {
           <li>
             <button class="menu-item menu-item-info" @click="handleInfoClick">
               Info
+            </button>
+          </li>
+          <li>
+            <button
+              class="menu-item menu-item-preferences"
+              @click="handlePreferencesClick"
+            >
+              Preferences
             </button>
           </li>
         </ul>

@@ -45,4 +45,21 @@ describe("SettingsMenu", () => {
     // Should auto-close the menu after selection
     expect(wrapper.find(".settings-popover").exists()).toBe(false);
   });
+
+  it("emits 'open-preferences' when Preferences item clicked", async () => {
+    wrapper = mount(SettingsMenu);
+    const btn = wrapper.find(".settings-btn");
+
+    await btn.trigger("click");
+    const preferencesItem = wrapper.find(".menu-item-preferences");
+    expect(preferencesItem.exists()).toBe(true);
+    expect(preferencesItem.text().trim()).toBe("Preferences");
+
+    await preferencesItem.trigger("click");
+    expect(wrapper.emitted("open-preferences")).toBeTruthy();
+    expect(wrapper.emitted("open-preferences")?.length).toBe(1);
+
+    // Should auto-close the menu after selection
+    expect(wrapper.find(".settings-popover").exists()).toBe(false);
+  });
 });

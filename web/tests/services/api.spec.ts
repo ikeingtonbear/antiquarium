@@ -339,4 +339,71 @@ describe("SharkophagusApi", () => {
       );
     });
   });
+
+  /* ──────────────────────────────────────────────────
+     T004 [US1]: getSystemConfig
+     ────────────────────────────────────────────────── */
+  describe("getSystemConfig", () => {
+    it("sends a GET request to /config", async () => {
+      const mockConfig = [
+        { name: "udp.check_checksum", type: "boolean", value: true },
+      ];
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockConfig),
+      });
+
+      const result = await api.getSystemConfig();
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe("http://localhost:8080/v1/config");
+      expect(result).toEqual(mockConfig);
+    });
+
+    it("sends a GET request to /config?pref=udp.check_checksum when pref is provided", async () => {
+      const mockConfig = [
+        { name: "udp.check_checksum", type: "boolean", value: true },
+      ];
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockConfig),
+      });
+
+      await api.getSystemConfig("udp.check_checksum");
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        "http://localhost:8080/v1/config?pref=udp.check_checksum",
+      );
+    });
+  });
+
+  /* ──────────────────────────────────────────────────
+     T013 [US3]: updateSessionConfig
+     ────────────────────────────────────────────────── */
+  describe("updateSessionConfig", () => {
+    it("sends a POST request to /sessions/{sessionId}/config", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+      });
+
+      await api.updateSessionConfig("session-abc", "udp.check_checksum", true);
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe("http://localhost:8080/v1/sessions/session-abc/config");
+      expect(options.method).toBe("POST");
+      expect(JSON.parse(options.body)).toEqual({
+        name: "udp.check_checksum",
+        value: true,
+      });
+    });
+  });
 });

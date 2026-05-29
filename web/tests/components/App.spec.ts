@@ -436,4 +436,27 @@ describe("App", () => {
     expect(infoModal.exists()).toBe(true);
     expect(infoModal.props("isOpen")).toBe(true);
   });
+
+  it("renders ConfigModal and opens it when open-preferences event is emitted", async () => {
+    wrapper = mount(App);
+    await flushPromises();
+
+    // Verify SettingsMenu is rendered
+    const settingsMenu = wrapper.findComponent({ name: "SettingsMenu" });
+    expect(settingsMenu.exists()).toBe(true);
+
+    // Modal should be closed initially
+    let configModal = wrapper.findComponent({ name: "ConfigModal" });
+    expect(configModal.exists()).toBe(true);
+    expect(configModal.props("isOpen")).toBe(false);
+
+    // Emit open-preferences
+    await settingsMenu.vm.$emit("open-preferences");
+    await flushPromises();
+
+    // Modal should be open now
+    configModal = wrapper.findComponent({ name: "ConfigModal" });
+    expect(configModal.exists()).toBe(true);
+    expect(configModal.props("isOpen")).toBe(true);
+  });
 });
