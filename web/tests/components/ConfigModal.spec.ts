@@ -5,24 +5,26 @@ import { SharkophagusApi } from "@/services/api";
 
 // Mock SharkophagusApi class
 vi.mock("@/services/api", () => {
+  const getMockConfig = () => [
+    { name: "udp.check_checksum", type: "boolean", value: true },
+    { name: "ip.defragment", type: "boolean", value: false },
+    {
+      name: "ip.summary_in_comment",
+      type: "enum",
+      value: "None",
+      choices: [
+        { value: 0, description: "None", default: true },
+        { value: 1, description: "Yes", default: false },
+      ],
+    },
+    { name: "tcp.ports", type: "string", value: "80,443" },
+    { name: "custom.table", type: "table", value: "some-table-data" },
+  ];
   return {
     SharkophagusApi: vi.fn().mockImplementation(() => {
       return {
-        getSystemConfig: vi.fn().mockResolvedValue([
-          { name: "udp.check_checksum", type: "boolean", value: true },
-          { name: "ip.defragment", type: "boolean", value: false },
-          {
-            name: "ip.summary_in_comment",
-            type: "enum",
-            value: 0,
-            choices: [
-              { value: 0, description: "None", default: true },
-              { value: 1, description: "Yes", default: false },
-            ],
-          },
-          { name: "tcp.ports", type: "string", value: "80,443" },
-          { name: "custom.table", type: "table", value: "some-table-data" },
-        ]),
+        getSystemConfig: vi.fn().mockImplementation(() => Promise.resolve(getMockConfig())),
+        getSessionConfig: vi.fn().mockImplementation(() => Promise.resolve(getMockConfig())),
         updateSessionConfig: vi.fn().mockResolvedValue(undefined),
       };
     }),
@@ -143,7 +145,7 @@ describe("ConfigModal", () => {
     expect(summaryItem).toBeDefined();
     const select = summaryItem?.find("select");
     expect(select?.exists()).toBe(true);
-    expect((select?.element as HTMLSelectElement).value).toBe("0");
+    expect((select?.element as HTMLSelectElement).value).toBe("None");
 
     // tcp.ports is string -> text input
     const tcpItem = wrapper

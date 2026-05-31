@@ -51,7 +51,7 @@ onUnmounted(() => {
       title="Settings"
     >
       <Settings
-        size="20"
+        :size="20"
         class="settings-icon"
         :class="{ 'is-open': isOpen }"
       />

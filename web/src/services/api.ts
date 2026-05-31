@@ -210,6 +210,36 @@ export class SharkophagusApi implements ApiClient {
   }
 
   /**
+   * Fetches the configuration settings for the active session.
+   * @param sessionId - The active capture session UUID
+   * @param pref - Optional name of a specific configuration preference to retrieve
+   */
+  async getSessionConfig(
+    sessionId: string,
+    pref?: string,
+  ): Promise<ConfigPreference[]> {
+    let response: Response;
+    const url = pref
+      ? `${this.baseUrl}/sessions/${sessionId}/config?pref=${encodeURIComponent(pref)}`
+      : `${this.baseUrl}/sessions/${sessionId}/config`;
+
+    try {
+      response = await fetch(url);
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return response.json();
+  }
+
+  /**
    * Updates a configuration preference for the active session.
    * @param sessionId - The active capture session UUID
    * @param name - The configuration preference name

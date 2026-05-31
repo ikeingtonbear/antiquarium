@@ -183,6 +183,16 @@ export interface ApiClient {
   getSystemConfig(pref?: string): Promise<ConfigPreference[]>;
 
   /**
+   * Fetches the configuration settings for the active session.
+   * @param sessionId - The active capture session UUID
+   * @param pref - Optional name of a specific configuration preference to retrieve
+   */
+  getSessionConfig(
+    sessionId: string,
+    pref?: string,
+  ): Promise<ConfigPreference[]>;
+
+  /**
    * Updates a configuration preference for the active session.
    * @param sessionId - The active capture session UUID
    * @param name - The configuration preference name

@@ -46,7 +46,7 @@ function handleOverlayClick(e: MouseEvent) {
             @click="emit('close')"
             aria-label="Close modal"
           >
-            <X size="20" />
+            <X :size="20" />
           </button>
         </header>
 
@@ -57,7 +57,7 @@ function handleOverlayClick(e: MouseEvent) {
             :class="{ active: activeTab === 'columns' }"
             @click="activeTab = 'columns'"
           >
-            <Layers size="16" />
+            <Layers :size="16" />
             Columns
           </button>
           <button
@@ -65,7 +65,7 @@ function handleOverlayClick(e: MouseEvent) {
             :class="{ active: activeTab === 'formats' }"
             @click="activeTab = 'formats'"
           >
-            <FileCode size="16" />
+            <FileCode :size="16" />
             Formats
           </button>
           <button
@@ -73,7 +73,7 @@ function handleOverlayClick(e: MouseEvent) {
             :class="{ active: activeTab === 'taps' }"
             @click="activeTab = 'taps'"
           >
-            <Database size="16" />
+            <Database :size="16" />
             Taps & Stats
           </button>
           <button
@@ -81,7 +81,7 @@ function handleOverlayClick(e: MouseEvent) {
             :class="{ active: activeTab === 'filters' }"
             @click="activeTab = 'filters'"
           >
-            <Terminal size="16" />
+            <Terminal :size="16" />
             Filters
           </button>
         </nav>

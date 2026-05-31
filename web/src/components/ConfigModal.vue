@@ -25,7 +25,11 @@ async function loadConfigs() {
   isLoading.value = true;
   errorMsg.value = null;
   try {
-    configs.value = await api.getSystemConfig();
+    if (props.sessionId) {
+      configs.value = await api.getSessionConfig(props.sessionId);
+    } else {
+      configs.value = await api.getSystemConfig();
+    }
   } catch (err: any) {
     errorMsg.value = err.message || "Failed to load configuration preferences.";
   } finally {
@@ -102,29 +106,29 @@ function handleOverlayClick(e: MouseEvent) {
             @click="emit('close')"
             aria-label="Close modal"
           >
-            <X size="20" />
+            <X :size="20" />
           </button>
         </header>
 
         <!-- Session Notice Warning -->
         <div v-if="!sessionId" class="session-warning">
-          <AlertCircle size="16" />
+          <AlertCircle :size="16" />
           <span>Active session required to modify settings</span>
         </div>
 
         <!-- Feedback Messages -->
         <div v-if="errorMsg" class="error-notice">
-          <AlertCircle size="16" />
+          <AlertCircle :size="16" />
           <span>{{ errorMsg }}</span>
         </div>
         <div v-if="successMsg" class="success-notice">
-          <CheckCircle2 size="16" />
+          <CheckCircle2 :size="16" />
           <span>{{ successMsg }}</span>
         </div>
 
         <!-- Search bar -->
         <div class="search-bar-container">
-          <Search size="16" class="search-icon" />
+          <Search :size="16" class="search-icon" />
           <input
             v-model="searchQuery"
             type="text"
@@ -175,7 +179,7 @@ function handleOverlayClick(e: MouseEvent) {
                   @change="
                     handleUpdate(
                       config,
-                      Number(($event.target as HTMLSelectElement).value),
+                      ($event.target as HTMLSelectElement).value,
                     )
                   "
                   class="select-input"
@@ -183,7 +187,7 @@ function handleOverlayClick(e: MouseEvent) {
                   <option
                     v-for="choice in config.choices"
                     :key="choice.value"
-                    :value="choice.value"
+                    :value="choice.description"
                   >
                     {{ choice.description }}
                   </option>

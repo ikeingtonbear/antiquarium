@@ -23,6 +23,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "end-session"): void;
   (e: "show-details"): void;
+  (e: "acknowledge"): void;
 }>();
 
 /* ── Formatters ── */
