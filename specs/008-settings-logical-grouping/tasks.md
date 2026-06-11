@@ -70,7 +70,7 @@
 
 ### Tests for User Story 2 (MANDATORY - TDD) ⚠️
 
-- [ ] T009 [P] [US2] Write failing test for global search and grouping by category headers in `web/tests/components/ConfigModal.spec.ts`
+- [x] T009 [P] [US2] Write failing test for global search and grouping by category headers in `web/tests/components/ConfigModal.spec.ts`
 
 ### Implementation for User Story 2
 

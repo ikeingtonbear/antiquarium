@@ -305,4 +305,26 @@ describe("ConfigModal", () => {
     // Verify it shows full path as subtitle/helper
     expect(displayedItems[0].text()).toContain("udp.check_checksum");
   });
+
+  it("displays search results grouped by category headers when a search query is active", async () => {
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    const searchInput = wrapper.find(".search-input");
+    expect(searchInput.exists()).toBe(true);
+
+    // Filter for "checksum"
+    await searchInput.setValue("checksum");
+    await wrapper.vm.$nextTick();
+
+    // The display list should show a group header for "UDP"
+    const groupHeaders = wrapper.findAll(".search-group-header");
+    expect(groupHeaders.length).toBe(1);
+    expect(groupHeaders[0].text()).toContain("UDP");
+
+    // The items under search results should show stripped display name
+    const displayedItems = wrapper.findAll(".config-item");
+    expect(displayedItems.length).toBe(1);
+    expect(displayedItems[0].text()).toContain("check_checksum");
+  });
 });
