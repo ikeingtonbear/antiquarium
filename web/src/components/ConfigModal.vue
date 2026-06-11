@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import { ref, watch, inject, computed, onMounted, onUnmounted } from "vue";
-import { X, Search, AlertCircle, CheckCircle2 } from "@lucide/vue";
-import type { ApiClient, ConfigPreference, PreferenceCategory } from "../types";
+import { X, Search, AlertCircle, CheckCircle2, ChevronDown } from "@lucide/vue";
+import type {
+  ApiClient,
+  ConfigPreference,
+  PreferenceCategory,
+  CategoryViewData,
+} from "../types";
 import { SharkophagusApi } from "../services/api";
+import {
+  toHumanReadableLabel,
+  groupPreferences,
+  getGroupItemLabel,
+} from "../services/configFormatter";
 
 const props = defineProps<{
   isOpen: boolean;
@@ -23,6 +33,9 @@ const successMsg = ref<string | null>(null);
 
 const selectedCategoryId = ref("all");
 const isMobile = ref(false);
+
+/** Tracks collapse/expand state per group ID across the session */
+const collapsedGroups = ref<Record<string, boolean>>({});
 
 function handleResize() {
   isMobile.value = window.innerWidth < 768;
@@ -176,6 +189,11 @@ const activeCategoryDescription = computed(() => {
   return "";
 });
 
+/**
+ * Returns the human-readable label for a preference sub-key.
+ * In "All Preferences" view, shows the full name as-is.
+ * In category views, strips the category prefix and formats the remainder.
+ */
 function getPrefDisplayName(configName: string, categoryId?: string): string {
   const catId = categoryId || selectedCategoryId.value;
   if (catId === "all") return configName;
@@ -185,9 +203,53 @@ function getPrefDisplayName(configName: string, categoryId?: string): string {
     activeCat.prefix &&
     configName.startsWith(activeCat.prefix)
   ) {
-    return configName.substring(activeCat.prefix.length);
+    const subKey = configName.substring(activeCat.prefix.length);
+    return toHumanReadableLabel(subKey);
   }
   return configName;
+}
+
+/**
+ * Returns the human-readable label for a preference within a group,
+ * stripping both the category prefix and the group prefix.
+ */
+function getGroupedPrefDisplayName(
+  configName: string,
+  categoryPrefix: string,
+  groupPrefix: string,
+): string {
+  return getGroupItemLabel(configName, categoryPrefix, groupPrefix);
+}
+
+/**
+ * Returns the CategoryViewData (standalone prefs + grouped prefs)
+ * for the currently active category.
+ */
+const categoryViewData = computed<CategoryViewData>(() => {
+  const catId = selectedCategoryId.value;
+  if (catId === "all") {
+    // All view: no sub-grouping, just standalone
+    const sorted = [...(groupedConfigs.value["all"] || [])].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+    return { standalonePreferences: sorted, preferenceGroups: [] };
+  }
+
+  const activeCat = categories.value.find((c) => c.id === catId);
+  const prefs = groupedConfigs.value[catId] || [];
+  const prefix = activeCat?.prefix || "";
+
+  return groupPreferences(prefs, prefix);
+});
+
+/** Toggles the collapsed state of a preference group */
+function toggleGroup(groupId: string) {
+  collapsedGroups.value[groupId] = !collapsedGroups.value[groupId];
+}
+
+/** Returns whether a group is currently collapsed */
+function isGroupCollapsed(groupId: string): boolean {
+  return !!collapsedGroups.value[groupId];
 }
 
 async function loadConfigs() {
@@ -519,102 +581,240 @@ function handleOverlayClick(e: MouseEvent) {
                       </div>
                     </div>
 
-                    <!-- If search is NOT active, render standard category view -->
+                    <!-- If search is NOT active, render hierarchical category view -->
                     <div v-else>
                       <div
-                        v-if="filteredConfigs.length === 0"
+                        v-if="
+                          categoryViewData.standalonePreferences.length === 0 &&
+                          categoryViewData.preferenceGroups.length === 0
+                        "
                         class="empty-state"
                       >
                         No matching preferences found.
                       </div>
-                      <div v-else class="configs-list">
+                      <div v-else class="category-content">
+                        <!-- Preference Groups (collapsible cards) -->
                         <div
-                          v-for="config in filteredConfigs"
-                          :key="config.name"
-                          class="config-item"
+                          v-for="group in categoryViewData.preferenceGroups"
+                          :key="group.id"
+                          class="preference-group-card"
                         >
-                          <div class="config-info">
-                            <span class="config-name">{{
-                              getPrefDisplayName(config.name)
-                            }}</span>
-                            <span
-                              v-if="selectedCategoryId !== 'all'"
-                              class="config-full-name"
-                              >{{ config.name }}</span
+                          <button
+                            class="group-header"
+                            :class="{ collapsed: isGroupCollapsed(group.id) }"
+                            @click="toggleGroup(group.id)"
+                            :aria-expanded="!isGroupCollapsed(group.id)"
+                          >
+                            <span class="group-title">{{ group.title }}</span>
+                            <span class="group-count"
+                              >{{ group.preferences.length }} settings</span
                             >
-                            <span class="config-type-badge">{{
-                              config.type
-                            }}</span>
-                          </div>
-                          <div class="config-control">
-                            <!-- Checkbox for boolean -->
-                            <input
-                              v-if="config.type === 'boolean'"
-                              type="checkbox"
-                              :checked="config.value"
-                              :disabled="!sessionId"
-                              @change="
-                                handleUpdate(
-                                  config,
-                                  ($event.target as HTMLInputElement).checked,
-                                )
-                              "
-                              class="checkbox-input"
+                            <ChevronDown
+                              :size="16"
+                              class="group-chevron"
+                              :class="{ rotated: isGroupCollapsed(group.id) }"
                             />
-
-                            <!-- Select dropdown for enum -->
-                            <select
-                              v-else-if="
-                                config.type === 'enum' && config.choices
-                              "
-                              :value="config.value"
-                              :disabled="!sessionId"
-                              @change="
-                                handleUpdate(
-                                  config,
-                                  ($event.target as HTMLSelectElement).value,
-                                )
-                              "
-                              class="select-input"
-                            >
-                              <option
-                                v-for="choice in config.choices"
-                                :key="choice.value"
-                                :value="choice.description"
+                          </button>
+                          <div
+                            class="group-body"
+                            :class="{ hidden: isGroupCollapsed(group.id) }"
+                          >
+                            <div class="configs-list">
+                              <div
+                                v-for="config in group.preferences"
+                                :key="config.name"
+                                class="config-item"
                               >
-                                {{ choice.description }}
-                              </option>
-                            </select>
+                                <div class="config-info">
+                                  <span class="config-name">{{
+                                    getGroupedPrefDisplayName(
+                                      config.name,
+                                      categories.find(
+                                        (c) => c.id === selectedCategoryId,
+                                      )?.prefix || "",
+                                      group.prefix,
+                                    )
+                                  }}</span>
+                                  <span class="config-full-name">{{
+                                    config.name
+                                  }}</span>
+                                  <span class="config-type-badge">{{
+                                    config.type
+                                  }}</span>
+                                </div>
+                                <div class="config-control">
+                                  <!-- Checkbox for boolean -->
+                                  <input
+                                    v-if="config.type === 'boolean'"
+                                    type="checkbox"
+                                    :checked="config.value"
+                                    :disabled="!sessionId"
+                                    @change="
+                                      handleUpdate(
+                                        config,
+                                        ($event.target as HTMLInputElement)
+                                          .checked,
+                                      )
+                                    "
+                                    class="checkbox-input"
+                                  />
 
-                            <!-- Readonly for table/unknown -->
-                            <input
-                              v-else-if="
-                                config.type === 'table' ||
-                                config.type === 'unknown'
-                              "
-                              type="text"
-                              :value="config.value"
-                              readonly
-                              class="text-input readonly"
-                            />
+                                  <!-- Select dropdown for enum -->
+                                  <select
+                                    v-else-if="
+                                      config.type === 'enum' && config.choices
+                                    "
+                                    :value="config.value"
+                                    :disabled="!sessionId"
+                                    @change="
+                                      handleUpdate(
+                                        config,
+                                        ($event.target as HTMLSelectElement)
+                                          .value,
+                                      )
+                                    "
+                                    class="select-input"
+                                  >
+                                    <option
+                                      v-for="choice in config.choices"
+                                      :key="choice.value"
+                                      :value="choice.description"
+                                    >
+                                      {{ choice.description }}
+                                    </option>
+                                  </select>
 
-                            <!-- Text input for others -->
-                            <input
-                              v-else
-                              type="text"
-                              :value="config.value"
-                              :disabled="!sessionId"
-                              @blur="
-                                handleUpdate(
-                                  config,
-                                  ($event.target as HTMLInputElement).value,
-                                )
-                              "
-                              @keyup.enter="
-                                ($event.target as HTMLInputElement).blur()
-                              "
-                              class="text-input"
-                            />
+                                  <!-- Readonly for table/unknown -->
+                                  <input
+                                    v-else-if="
+                                      config.type === 'table' ||
+                                      config.type === 'unknown'
+                                    "
+                                    type="text"
+                                    :value="config.value"
+                                    readonly
+                                    class="text-input readonly"
+                                  />
+
+                                  <!-- Text input for others -->
+                                  <input
+                                    v-else
+                                    type="text"
+                                    :value="config.value"
+                                    :disabled="!sessionId"
+                                    @blur="
+                                      handleUpdate(
+                                        config,
+                                        ($event.target as HTMLInputElement)
+                                          .value,
+                                      )
+                                    "
+                                    @keyup.enter="
+                                      ($event.target as HTMLInputElement).blur()
+                                    "
+                                    class="text-input"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Standalone preferences (not grouped) -->
+                        <div
+                          v-if="
+                            categoryViewData.standalonePreferences.length > 0
+                          "
+                          class="configs-list standalone-configs"
+                        >
+                          <div
+                            v-for="config in categoryViewData.standalonePreferences"
+                            :key="config.name"
+                            class="config-item"
+                          >
+                            <div class="config-info">
+                              <span class="config-name">{{
+                                getPrefDisplayName(config.name)
+                              }}</span>
+                              <span
+                                v-if="selectedCategoryId !== 'all'"
+                                class="config-full-name"
+                                >{{ config.name }}</span
+                              >
+                              <span class="config-type-badge">{{
+                                config.type
+                              }}</span>
+                            </div>
+                            <div class="config-control">
+                              <!-- Checkbox for boolean -->
+                              <input
+                                v-if="config.type === 'boolean'"
+                                type="checkbox"
+                                :checked="config.value"
+                                :disabled="!sessionId"
+                                @change="
+                                  handleUpdate(
+                                    config,
+                                    ($event.target as HTMLInputElement).checked,
+                                  )
+                                "
+                                class="checkbox-input"
+                              />
+
+                              <!-- Select dropdown for enum -->
+                              <select
+                                v-else-if="
+                                  config.type === 'enum' && config.choices
+                                "
+                                :value="config.value"
+                                :disabled="!sessionId"
+                                @change="
+                                  handleUpdate(
+                                    config,
+                                    ($event.target as HTMLSelectElement).value,
+                                  )
+                                "
+                                class="select-input"
+                              >
+                                <option
+                                  v-for="choice in config.choices"
+                                  :key="choice.value"
+                                  :value="choice.description"
+                                >
+                                  {{ choice.description }}
+                                </option>
+                              </select>
+
+                              <!-- Readonly for table/unknown -->
+                              <input
+                                v-else-if="
+                                  config.type === 'table' ||
+                                  config.type === 'unknown'
+                                "
+                                type="text"
+                                :value="config.value"
+                                readonly
+                                class="text-input readonly"
+                              />
+
+                              <!-- Text input for others -->
+                              <input
+                                v-else
+                                type="text"
+                                :value="config.value"
+                                :disabled="!sessionId"
+                                @blur="
+                                  handleUpdate(
+                                    config,
+                                    ($event.target as HTMLInputElement).value,
+                                  )
+                                "
+                                @keyup.enter="
+                                  ($event.target as HTMLInputElement).blur()
+                                "
+                                class="text-input"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -881,6 +1081,14 @@ function handleOverlayClick(e: MouseEvent) {
   font-size: 0.9rem;
 }
 
+/* ── Category content with groups ── */
+
+.category-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .configs-list {
   display: flex;
   flex-direction: column;
@@ -922,6 +1130,82 @@ function handleOverlayClick(e: MouseEvent) {
 .config-control {
   flex-shrink: 0;
 }
+
+/* ── Preference Group Card ── */
+
+.preference-group-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(59, 130, 246, 0.06);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.group-header:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.group-header.collapsed {
+  border-bottom-color: transparent;
+}
+
+.group-title {
+  flex: 1;
+}
+
+.group-count {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.group-chevron {
+  color: #64748b;
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.group-chevron.rotated {
+  transform: rotate(-90deg);
+}
+
+.group-body {
+  padding: 0.75rem;
+  transition: all 0.25s ease;
+  max-height: 2000px;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.group-body.hidden {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+}
+
+.standalone-configs {
+  margin-top: 0.25rem;
+}
+
+/* ── Form controls ── */
 
 .checkbox-input {
   width: 18px;

@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-[plan.md](specs/008-settings-logical-grouping/plan.md)
+[plan.md](specs/009-settings-visual-cleanup/plan.md)
 <!-- SPECKIT END -->
 
 ## External Dependencies & API Contracts
