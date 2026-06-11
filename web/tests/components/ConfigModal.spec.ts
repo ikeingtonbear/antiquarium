@@ -327,4 +327,30 @@ describe("ConfigModal", () => {
     expect(displayedItems.length).toBe(1);
     expect(displayedItems[0].text()).toContain("check_checksum");
   });
+
+  it("renders all settings in alphabetical order with full names when 'All Preferences' is selected", async () => {
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    // Select 'All Preferences'
+    const categoryItems = wrapper.findAll(".category-item");
+    const allCategory = categoryItems.find((el) => el.text().includes("All Preferences"));
+    expect(allCategory).toBeDefined();
+    await allCategory?.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    // Verify all 5 configs are displayed
+    const displayedItems = wrapper.findAll(".config-item");
+    expect(displayedItems.length).toBe(5);
+
+    // Verify alphabetical order and full names
+    expect(displayedItems[0].text()).toContain("custom.table");
+    expect(displayedItems[1].text()).toContain("ip.defragment");
+    expect(displayedItems[2].text()).toContain("ip.summary_in_comment");
+    expect(displayedItems[3].text()).toContain("tcp.ports");
+    expect(displayedItems[4].text()).toContain("udp.check_checksum");
+
+    // Verify they do not show the redundant small full name subtitle
+    expect(displayedItems[4].find(".config-full-name").exists()).toBe(false);
+  });
 });

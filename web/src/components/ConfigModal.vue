@@ -198,9 +198,15 @@ watch(
 const filteredConfigs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
   if (query) {
-    return configs.value.filter((c) => c.name.toLowerCase().includes(query));
+    return configs.value
+      .filter((c) => c.name.toLowerCase().includes(query))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
-  return groupedConfigs.value[selectedCategoryId.value] || [];
+  const result = groupedConfigs.value[selectedCategoryId.value] || [];
+  if (selectedCategoryId.value === "all") {
+    return [...result].sort((a, b) => a.name.localeCompare(b.name));
+  }
+  return result;
 });
 
 async function handleUpdate(config: ConfigPreference, newValue: any) {

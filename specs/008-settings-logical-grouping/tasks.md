@@ -89,11 +89,11 @@
 
 ### Tests for User Story 3 (MANDATORY - TDD) ⚠️
 
-- [ ] T012 [P] [US3] Write failing test for selecting "All Preferences" and verifying alphabetical flat listing in `web/tests/components/ConfigModal.spec.ts`
+- [x] T012 [P] [US3] Write failing test for selecting "All Preferences" and verifying alphabetical flat listing in `web/tests/components/ConfigModal.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Implement `'all'` category selection logic and rendering rules (retaining full dot-notation names) in `web/src/components/ConfigModal.vue`
+- [x] T013 [US3] Implement `'all'` category selection logic and rendering rules (retaining full dot-notation names) in `web/src/components/ConfigModal.vue`
 
 **Checkpoint**: All user stories should now be independently functional.
 
