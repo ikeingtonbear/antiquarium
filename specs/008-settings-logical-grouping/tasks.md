@@ -49,7 +49,7 @@
 
 ### Tests for User Story 1 (MANDATORY - TDD) ⚠️
 
-- [ ] T004 [P] [US1] Write failing test for sidebar rendering, category selection, and prefix stripping in `web/tests/components/ConfigModal.spec.ts`
+- [x] T004 [P] [US1] Write failing test for sidebar rendering, category selection, and prefix stripping in `web/tests/components/ConfigModal.spec.ts`
 
 ### Implementation for User Story 1
 

@@ -278,4 +278,31 @@ describe("ConfigModal", () => {
 
     activeWrapper.unmount();
   });
+
+  it("renders a sidebar with categories and filters settings by selected category", async () => {
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    // Verify sidebar exists
+    const sidebar = wrapper.find(".sidebar-container");
+    expect(sidebar.exists()).toBe(true);
+
+    // Verify categories list contains categories
+    const categoryItems = wrapper.findAll(".category-item");
+    expect(categoryItems.length).toBeGreaterThan(0);
+
+    // Click on 'udp' category
+    const udpCategory = categoryItems.find((el) => el.text().includes("udp") || el.text().includes("UDP"));
+    expect(udpCategory).toBeDefined();
+
+    await udpCategory?.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    // Only udp.check_checksum should be displayed in the list
+    const displayedItems = wrapper.findAll(".config-item");
+    expect(displayedItems.length).toBe(1);
+    expect(displayedItems[0].text()).toContain("check_checksum");
+    // Verify it shows full path as subtitle/helper
+    expect(displayedItems[0].text()).toContain("udp.check_checksum");
+  });
 });
