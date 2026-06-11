@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import ConfigModal from "@/components/ConfigModal.vue";
 import { SharkophagusApi } from "@/services/api";
+import type { PreferenceCategory } from "@/types";
 
 // Mock SharkophagusApi class
 vi.mock("@/services/api", () => {
@@ -23,8 +24,12 @@ vi.mock("@/services/api", () => {
   return {
     SharkophagusApi: vi.fn().mockImplementation(() => {
       return {
-        getSystemConfig: vi.fn().mockImplementation(() => Promise.resolve(getMockConfig())),
-        getSessionConfig: vi.fn().mockImplementation(() => Promise.resolve(getMockConfig())),
+        getSystemConfig: vi
+          .fn()
+          .mockImplementation(() => Promise.resolve(getMockConfig())),
+        getSessionConfig: vi
+          .fn()
+          .mockImplementation(() => Promise.resolve(getMockConfig())),
         updateSessionConfig: vi.fn().mockResolvedValue(undefined),
       };
     }),
@@ -276,5 +281,135 @@ describe("ConfigModal", () => {
     );
 
     activeWrapper.unmount();
+  });
+
+  it("renders a sidebar with categories and filters settings by selected category", async () => {
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    // Verify sidebar exists
+    const sidebar = wrapper.find(".sidebar-container");
+    expect(sidebar.exists()).toBe(true);
+
+    // Verify categories list contains categories
+    const categoryItems = wrapper.findAll(".category-item");
+    expect(categoryItems.length).toBeGreaterThan(0);
+
+    // Click on 'udp' category
+    const udpCategory = categoryItems.find(
+      (el) => el.text().includes("udp") || el.text().includes("UDP"),
+    );
+    expect(udpCategory).toBeDefined();
+
+    await udpCategory?.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    // Only udp.check_checksum should be displayed in the list
+    const displayedItems = wrapper.findAll(".config-item");
+    expect(displayedItems.length).toBe(1);
+    expect(displayedItems[0].text()).toContain("check_checksum");
+    // Verify it shows full path as subtitle/helper
+    expect(displayedItems[0].text()).toContain("udp.check_checksum");
+  });
+
+  it("displays search results grouped by category headers when a search query is active", async () => {
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    const searchInput = wrapper.find(".search-input");
+    expect(searchInput.exists()).toBe(true);
+
+    // Filter for "checksum"
+    await searchInput.setValue("checksum");
+    await wrapper.vm.$nextTick();
+
+    // The display list should show a group header for "UDP"
+    const groupHeaders = wrapper.findAll(".search-group-header");
+    expect(groupHeaders.length).toBe(1);
+    expect(groupHeaders[0].text()).toContain("UDP");
+
+    // The items under search results should show stripped display name
+    const displayedItems = wrapper.findAll(".config-item");
+    expect(displayedItems.length).toBe(1);
+    expect(displayedItems[0].text()).toContain("check_checksum");
+  });
+
+  it("renders all settings in alphabetical order with full names when 'All Preferences' is selected", async () => {
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    // Select 'All Preferences'
+    const categoryItems = wrapper.findAll(".category-item");
+    const allCategory = categoryItems.find((el) =>
+      el.text().includes("All Preferences"),
+    );
+    expect(allCategory).toBeDefined();
+    await allCategory?.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    // Verify all 5 configs are displayed
+    const displayedItems = wrapper.findAll(".config-item");
+    expect(displayedItems.length).toBe(5);
+
+    // Verify alphabetical order and full names
+    expect(displayedItems[0].text()).toContain("custom.table");
+    expect(displayedItems[1].text()).toContain("ip.defragment");
+    expect(displayedItems[2].text()).toContain("ip.summary_in_comment");
+    expect(displayedItems[3].text()).toContain("tcp.ports");
+    expect(displayedItems[4].text()).toContain("udp.check_checksum");
+
+    // Verify they do not show the redundant small full name subtitle
+    expect(displayedItems[4].find(".config-full-name").exists()).toBe(false);
+  });
+
+  it("collapses the sidebar into a top dropdown selector on mobile screens", async () => {
+    await vi.dynamicImportSettled();
+
+    // Mount a new instance to test lifecycle resize hook
+    const mobileWrapper = mount(ConfigModal, {
+      props: {
+        isOpen: true,
+        sessionId: null,
+      },
+      global: {
+        provide: {
+          api: mockApiInstance,
+        },
+      },
+    });
+
+    await vi.dynamicImportSettled();
+    await mobileWrapper.vm.$nextTick();
+
+    // Mock window.innerWidth to mobile size
+    Object.defineProperty(window, "innerWidth", {
+      writable: true,
+      configurable: true,
+      value: 500,
+    });
+    window.dispatchEvent(new Event("resize"));
+    await mobileWrapper.vm.$nextTick();
+
+    // Verify sidebar is hidden/not rendered
+    expect(mobileWrapper.find(".sidebar-container").exists()).toBe(false);
+
+    // Verify mobile dropdown selector exists
+    const mobileSelect = mobileWrapper.find("select.mobile-category-select");
+    expect(mobileSelect.exists()).toBe(true);
+
+    // Verify select contains correct categories
+    const options = mobileSelect.findAll("option");
+    expect(options.length).toBeGreaterThan(0);
+
+    // Change category to 'protocol-udp' using select dropdown
+    await mobileSelect.setValue("protocol-udp");
+    await mobileWrapper.vm.$nextTick();
+
+    // Check that udp.check_checksum is filtered
+    const displayedItems = mobileWrapper.findAll(".config-item");
+    expect(displayedItems.length).toBe(1);
+    expect(displayedItems[0].text()).toContain("check_checksum");
+
+    mobileWrapper.unmount();
   });
 });

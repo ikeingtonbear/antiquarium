@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, watch, inject, computed } from "vue";
+import { ref, watch, inject, computed, onMounted, onUnmounted } from "vue";
 import { X, Search, AlertCircle, CheckCircle2 } from "@lucide/vue";
-import type { ApiClient, ConfigPreference } from "../types";
+import type { ApiClient, ConfigPreference, PreferenceCategory } from "../types";
 import { SharkophagusApi } from "../services/api";
 
 const props = defineProps<{
@@ -20,6 +20,175 @@ const searchQuery = ref("");
 const isLoading = ref(false);
 const errorMsg = ref<string | null>(null);
 const successMsg = ref<string | null>(null);
+
+const selectedCategoryId = ref("all");
+const isMobile = ref(false);
+
+function handleResize() {
+  isMobile.value = window.innerWidth < 768;
+}
+
+onMounted(() => {
+  handleResize();
+  window.addEventListener("resize", handleResize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", handleResize);
+});
+
+const categories = computed<PreferenceCategory[]>(() => {
+  const list: PreferenceCategory[] = [{ id: "all", label: "All Preferences" }];
+
+  const namespaces = new Set<string>();
+  configs.value.forEach((c) => {
+    const parts = c.name.split(".");
+    if (parts.length > 1) {
+      namespaces.add(parts[0]);
+    }
+  });
+
+  const sortedNamespaces = Array.from(namespaces).sort();
+
+  const guiCategories: PreferenceCategory[] = [];
+  const captureCategories: PreferenceCategory[] = [];
+  const protocolCategories: PreferenceCategory[] = [];
+
+  sortedNamespaces.forEach((ns) => {
+    if (ns === "gui") {
+      guiCategories.push({
+        id: "gui",
+        label: "User Interface",
+        prefix: "gui.",
+      });
+    } else if (ns === "capture" || ns === "cap") {
+      captureCategories.push({ id: ns, label: "Capture", prefix: ns + "." });
+    } else {
+      protocolCategories.push({
+        id: "protocol-" + ns,
+        label: ns.toUpperCase(),
+        prefix: ns + ".",
+        isProtocol: true,
+      });
+    }
+  });
+
+  list.push(...guiCategories);
+  list.push(...captureCategories);
+  list.push(...protocolCategories);
+
+  return list;
+});
+
+const groupedConfigs = computed<Record<string, ConfigPreference[]>>(() => {
+  const groups: Record<string, ConfigPreference[]> = {
+    all: configs.value,
+  };
+
+  categories.value.forEach((cat) => {
+    if (cat.id !== "all") {
+      groups[cat.id] = [];
+    }
+  });
+
+  configs.value.forEach((c) => {
+    const parts = c.name.split(".");
+    if (parts.length > 1) {
+      const ns = parts[0];
+      if (ns === "gui") {
+        groups["gui"]?.push(c);
+      } else if (ns === "capture" || ns === "cap") {
+        groups[ns]?.push(c);
+      } else {
+        groups["protocol-" + ns]?.push(c);
+      }
+    }
+  });
+
+  return groups;
+});
+
+interface SearchGroup {
+  category: PreferenceCategory;
+  configs: ConfigPreference[];
+}
+
+const searchGroups = computed<SearchGroup[]>(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  if (!query) return [];
+
+  const matches = configs.value.filter((c) =>
+    c.name.toLowerCase().includes(query),
+  );
+
+  const groupsMap: Record<string, ConfigPreference[]> = {};
+  matches.forEach((c) => {
+    const parts = c.name.split(".");
+    let catId = "all";
+    if (parts.length > 1) {
+      const ns = parts[0];
+      if (ns === "gui") {
+        catId = "gui";
+      } else if (ns === "capture" || ns === "cap") {
+        catId = ns;
+      } else {
+        catId = "protocol-" + ns;
+      }
+    }
+    if (!groupsMap[catId]) {
+      groupsMap[catId] = [];
+    }
+    groupsMap[catId].push(c);
+  });
+
+  const list: SearchGroup[] = [];
+  categories.value.forEach((cat) => {
+    const catMatches = groupsMap[cat.id];
+    if (catMatches && catMatches.length > 0) {
+      list.push({
+        category: cat,
+        configs: catMatches,
+      });
+    }
+  });
+
+  return list;
+});
+
+const activeCategoryLabel = computed(() => {
+  if (searchQuery.value.trim()) return "Search Results";
+  const cat = categories.value.find((c) => c.id === selectedCategoryId.value);
+  return cat ? cat.label : "Preferences";
+});
+
+const activeCategoryDescription = computed(() => {
+  if (searchQuery.value.trim())
+    return `Showing preferences matching "${searchQuery.value}" grouped by category.`;
+  const cat = categories.value.find((c) => c.id === selectedCategoryId.value);
+  if (!cat) return "";
+  if (cat.id === "all") return "View and search all configuration preferences.";
+  if (cat.id === "gui")
+    return "Configure visual options, layout, and user interface preferences.";
+  if (cat.id === "capture" || cat.id === "cap")
+    return "Configure packet capture interfaces and buffer options.";
+  if (cat.isProtocol)
+    return `Configure parser and dissection options for the ${cat.label} protocol.`;
+  return "";
+});
+
+function getPrefDisplayName(configName: string, categoryId?: string): string {
+  const catId = categoryId || selectedCategoryId.value;
+  if (catId === "all") return configName;
+  const activeCat = categories.value.find((c) => c.id === catId);
+  if (
+    activeCat &&
+    activeCat.prefix &&
+    configName.startsWith(activeCat.prefix)
+  ) {
+    return configName.substring(activeCat.prefix.length);
+  }
+  return configName;
+}
 
 async function loadConfigs() {
   isLoading.value = true;
@@ -43,6 +212,7 @@ watch(
     if (newVal) {
       loadConfigs();
       searchQuery.value = "";
+      selectedCategoryId.value = "all";
       errorMsg.value = null;
       successMsg.value = null;
     }
@@ -52,8 +222,16 @@ watch(
 
 const filteredConfigs = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
-  if (!query) return configs.value;
-  return configs.value.filter((c) => c.name.toLowerCase().includes(query));
+  if (query) {
+    return configs.value
+      .filter((c) => c.name.toLowerCase().includes(query))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+  const result = groupedConfigs.value[selectedCategoryId.value] || [];
+  if (selectedCategoryId.value === "all") {
+    return [...result].sort((a, b) => a.name.localeCompare(b.name));
+  }
+  return result;
 });
 
 async function handleUpdate(config: ConfigPreference, newValue: any) {
@@ -139,88 +317,312 @@ function handleOverlayClick(e: MouseEvent) {
 
         <!-- Body -->
         <main class="modal-body">
-          <div v-if="isLoading" class="loading-state">
-            Loading preferences...
-          </div>
-          <div v-else-if="filteredConfigs.length === 0" class="empty-state">
-            No matching preferences found.
-          </div>
-          <div v-else class="configs-list">
-            <div
-              v-for="config in filteredConfigs"
-              :key="config.name"
-              class="config-item"
+          <div class="two-column-layout">
+            <!-- Left Sidebar Navigation -->
+            <aside
+              v-if="!isMobile"
+              class="sidebar-container"
+              role="navigation"
+              aria-label="Categories"
             >
-              <div class="config-info">
-                <span class="config-name">{{ config.name }}</span>
-                <span class="config-type-badge">{{ config.type }}</span>
-              </div>
-              <div class="config-control">
-                <!-- Checkbox for boolean -->
-                <input
-                  v-if="config.type === 'boolean'"
-                  type="checkbox"
-                  :checked="config.value"
-                  :disabled="!sessionId"
-                  @change="
-                    handleUpdate(
-                      config,
-                      ($event.target as HTMLInputElement).checked,
-                    )
-                  "
-                  class="checkbox-input"
-                />
+              <ul class="categories-list">
+                <li
+                  v-if="searchQuery.trim()"
+                  class="category-item active search-results-item"
+                >
+                  Search Results
+                </li>
+                <template v-else>
+                  <li
+                    class="category-item"
+                    :class="{ active: selectedCategoryId === 'all' }"
+                    @click="selectedCategoryId = 'all'"
+                  >
+                    All Preferences
+                  </li>
+                  <li
+                    v-for="cat in categories.filter(
+                      (c) => !c.isProtocol && c.id !== 'all',
+                    )"
+                    :key="cat.id"
+                    class="category-item"
+                    :class="{ active: selectedCategoryId === cat.id }"
+                    @click="selectedCategoryId = cat.id"
+                  >
+                    {{ cat.label }}
+                  </li>
+                  <li
+                    v-if="categories.some((c) => c.isProtocol)"
+                    class="sidebar-section-header"
+                  >
+                    Protocols
+                  </li>
+                  <li
+                    v-for="cat in categories.filter((c) => c.isProtocol)"
+                    :key="cat.id"
+                    class="category-item protocol-item"
+                    :class="{ active: selectedCategoryId === cat.id }"
+                    @click="selectedCategoryId = cat.id"
+                  >
+                    {{ cat.label }}
+                  </li>
+                </template>
+              </ul>
+            </aside>
 
-                <!-- Select dropdown for enum -->
+            <!-- Right Detailed Settings Panel -->
+            <section class="settings-panel">
+              <div
+                v-if="isMobile && !searchQuery.trim()"
+                class="mobile-select-container"
+              >
                 <select
-                  v-else-if="config.type === 'enum' && config.choices"
-                  :value="config.value"
-                  :disabled="!sessionId"
-                  @change="
-                    handleUpdate(
-                      config,
-                      ($event.target as HTMLSelectElement).value,
-                    )
-                  "
-                  class="select-input"
+                  v-model="selectedCategoryId"
+                  class="mobile-category-select"
                 >
                   <option
-                    v-for="choice in config.choices"
-                    :key="choice.value"
-                    :value="choice.description"
+                    v-for="cat in categories"
+                    :key="cat.id"
+                    :value="cat.id"
                   >
-                    {{ choice.description }}
+                    {{ cat.label }}
                   </option>
                 </select>
-
-                <!-- Readonly for table/unknown -->
-                <input
-                  v-else-if="
-                    config.type === 'table' || config.type === 'unknown'
-                  "
-                  type="text"
-                  :value="config.value"
-                  readonly
-                  class="text-input readonly"
-                />
-
-                <!-- Text input for others -->
-                <input
-                  v-else
-                  type="text"
-                  :value="config.value"
-                  :disabled="!sessionId"
-                  @blur="
-                    handleUpdate(
-                      config,
-                      ($event.target as HTMLInputElement).value,
-                    )
-                  "
-                  @keyup.enter="($event.target as HTMLInputElement).blur()"
-                  class="text-input"
-                />
               </div>
-            </div>
+
+              <div v-if="isLoading" class="loading-state">
+                Loading preferences...
+              </div>
+              <div v-else>
+                <Transition name="fade" mode="out-in">
+                  <div :key="selectedCategoryId + '_' + searchQuery.trim()">
+                    <!-- Category info header -->
+                    <div class="category-info-header">
+                      <h3 class="category-title">{{ activeCategoryLabel }}</h3>
+                      <p class="category-description">
+                        {{ activeCategoryDescription }}
+                      </p>
+                    </div>
+
+                    <!-- If search query is active, render grouped results -->
+                    <div
+                      v-if="searchQuery.trim()"
+                      class="search-results-container"
+                    >
+                      <div v-if="searchGroups.length === 0" class="empty-state">
+                        No matching preferences found.
+                      </div>
+                      <div v-else class="search-groups-list">
+                        <div
+                          v-for="group in searchGroups"
+                          :key="group.category.id"
+                          class="search-group"
+                        >
+                          <h4 class="search-group-header">
+                            {{ group.category.label }}
+                          </h4>
+                          <div class="configs-list">
+                            <div
+                              v-for="config in group.configs"
+                              :key="config.name"
+                              class="config-item"
+                            >
+                              <div class="config-info">
+                                <span class="config-name">{{
+                                  getPrefDisplayName(
+                                    config.name,
+                                    group.category.id,
+                                  )
+                                }}</span>
+                                <span class="config-full-name">{{
+                                  config.name
+                                }}</span>
+                                <span class="config-type-badge">{{
+                                  config.type
+                                }}</span>
+                              </div>
+                              <div class="config-control">
+                                <!-- Checkbox for boolean -->
+                                <input
+                                  v-if="config.type === 'boolean'"
+                                  type="checkbox"
+                                  :checked="config.value"
+                                  :disabled="!sessionId"
+                                  @change="
+                                    handleUpdate(
+                                      config,
+                                      ($event.target as HTMLInputElement)
+                                        .checked,
+                                    )
+                                  "
+                                  class="checkbox-input"
+                                />
+
+                                <!-- Select dropdown for enum -->
+                                <select
+                                  v-else-if="
+                                    config.type === 'enum' && config.choices
+                                  "
+                                  :value="config.value"
+                                  :disabled="!sessionId"
+                                  @change="
+                                    handleUpdate(
+                                      config,
+                                      ($event.target as HTMLSelectElement)
+                                        .value,
+                                    )
+                                  "
+                                  class="select-input"
+                                >
+                                  <option
+                                    v-for="choice in config.choices"
+                                    :key="choice.value"
+                                    :value="choice.description"
+                                  >
+                                    {{ choice.description }}
+                                  </option>
+                                </select>
+
+                                <!-- Readonly for table/unknown -->
+                                <input
+                                  v-else-if="
+                                    config.type === 'table' ||
+                                    config.type === 'unknown'
+                                  "
+                                  type="text"
+                                  :value="config.value"
+                                  readonly
+                                  class="text-input readonly"
+                                />
+
+                                <!-- Text input for others -->
+                                <input
+                                  v-else
+                                  type="text"
+                                  :value="config.value"
+                                  :disabled="!sessionId"
+                                  @blur="
+                                    handleUpdate(
+                                      config,
+                                      ($event.target as HTMLInputElement).value,
+                                    )
+                                  "
+                                  @keyup.enter="
+                                    ($event.target as HTMLInputElement).blur()
+                                  "
+                                  class="text-input"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- If search is NOT active, render standard category view -->
+                    <div v-else>
+                      <div
+                        v-if="filteredConfigs.length === 0"
+                        class="empty-state"
+                      >
+                        No matching preferences found.
+                      </div>
+                      <div v-else class="configs-list">
+                        <div
+                          v-for="config in filteredConfigs"
+                          :key="config.name"
+                          class="config-item"
+                        >
+                          <div class="config-info">
+                            <span class="config-name">{{
+                              getPrefDisplayName(config.name)
+                            }}</span>
+                            <span
+                              v-if="selectedCategoryId !== 'all'"
+                              class="config-full-name"
+                              >{{ config.name }}</span
+                            >
+                            <span class="config-type-badge">{{
+                              config.type
+                            }}</span>
+                          </div>
+                          <div class="config-control">
+                            <!-- Checkbox for boolean -->
+                            <input
+                              v-if="config.type === 'boolean'"
+                              type="checkbox"
+                              :checked="config.value"
+                              :disabled="!sessionId"
+                              @change="
+                                handleUpdate(
+                                  config,
+                                  ($event.target as HTMLInputElement).checked,
+                                )
+                              "
+                              class="checkbox-input"
+                            />
+
+                            <!-- Select dropdown for enum -->
+                            <select
+                              v-else-if="
+                                config.type === 'enum' && config.choices
+                              "
+                              :value="config.value"
+                              :disabled="!sessionId"
+                              @change="
+                                handleUpdate(
+                                  config,
+                                  ($event.target as HTMLSelectElement).value,
+                                )
+                              "
+                              class="select-input"
+                            >
+                              <option
+                                v-for="choice in config.choices"
+                                :key="choice.value"
+                                :value="choice.description"
+                              >
+                                {{ choice.description }}
+                              </option>
+                            </select>
+
+                            <!-- Readonly for table/unknown -->
+                            <input
+                              v-else-if="
+                                config.type === 'table' ||
+                                config.type === 'unknown'
+                              "
+                              type="text"
+                              :value="config.value"
+                              readonly
+                              class="text-input readonly"
+                            />
+
+                            <!-- Text input for others -->
+                            <input
+                              v-else
+                              type="text"
+                              :value="config.value"
+                              :disabled="!sessionId"
+                              @blur="
+                                handleUpdate(
+                                  config,
+                                  ($event.target as HTMLInputElement).value,
+                                )
+                              "
+                              @keyup.enter="
+                                ($event.target as HTMLInputElement).blur()
+                              "
+                              class="text-input"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Transition>
+              </div>
+            </section>
           </div>
         </main>
       </div>
@@ -249,8 +651,8 @@ function handleOverlayClick(e: MouseEvent) {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   width: 100%;
-  max-width: 680px;
-  height: 520px;
+  max-width: 800px;
+  height: 600px;
   display: flex;
   flex-direction: column;
   box-shadow:
@@ -369,9 +771,106 @@ function handleOverlayClick(e: MouseEvent) {
 
 .modal-body {
   flex: 1;
-  padding: 0.5rem 1.5rem 1.5rem 1.5rem;
+  padding: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.two-column-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.sidebar-container {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.2);
+  overflow-y: auto;
+  padding: 1rem 0;
+}
+
+.categories-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.category-item {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 2px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-item:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.category-item.active {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+  border-left-color: #3b82f6;
+  font-weight: 600;
+}
+
+.sidebar-section-header {
+  padding: 0.75rem 1.25rem 0.25rem 1.25rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.protocol-item {
+  padding-left: 1.75rem;
+}
+
+.settings-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.5rem 1.5rem 1.5rem;
   overflow-y: auto;
   min-height: 0;
+}
+
+.category-info-header {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.category-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 0.25rem 0;
+}
+
+.category-description {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.config-full-name {
+  font-size: 0.75rem;
+  color: #475569;
+  font-family: monospace;
+  word-break: break-all;
 }
 
 .loading-state,
@@ -469,6 +968,28 @@ function handleOverlayClick(e: MouseEvent) {
   cursor: default;
 }
 
+.search-results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.search-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.search-group-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3b82f6;
+  margin: 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px dashed rgba(59, 130, 246, 0.2);
+  letter-spacing: 0.025em;
+}
+
 /* Transitions */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
@@ -503,6 +1024,78 @@ function handleOverlayClick(e: MouseEvent) {
   }
   to {
     transform: scale(0.9);
+  }
+}
+
+/* Category change transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Mobile select dropdown styles */
+.mobile-select-container {
+  margin-bottom: 1rem;
+}
+
+.mobile-category-select {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.mobile-category-select:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+/* Responsive styles */
+@media (max-width: 767px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  .modal-container {
+    height: calc(100vh - 1rem);
+    border-radius: 12px;
+  }
+  .search-bar-container {
+    margin: 0.75rem 1rem 0.25rem 1rem;
+  }
+  .settings-panel {
+    padding: 1rem;
+  }
+  .config-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  .config-control {
+    width: 100%;
+  }
+  .select-input,
+  .text-input {
+    width: 100%;
   }
 }
 </style>
