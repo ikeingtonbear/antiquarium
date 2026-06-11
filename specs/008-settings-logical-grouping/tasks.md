@@ -53,10 +53,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implement computed properties `categories` and `groupedConfigs` inside `web/src/components/ConfigModal.vue` to group preferences by first-dot namespace
-- [ ] T006 [US1] Implement sidebar rendering layout and active category state tracking (`selectedCategoryId`) in `web/src/components/ConfigModal.vue`
-- [ ] T007 [US1] Update right-hand settings panel to filter by `selectedCategoryId` and format display labels in `web/src/components/ConfigModal.vue`
-- [ ] T008 [US1] Apply two-column desktop layouts and styles using vanilla CSS in `web/src/components/ConfigModal.vue`
+- [x] T005 [US1] Implement computed properties `categories` and `groupedConfigs` inside `web/src/components/ConfigModal.vue` to group preferences by first-dot namespace
+- [x] T006 [US1] Implement sidebar rendering layout and active category state tracking (`selectedCategoryId`) in `web/src/components/ConfigModal.vue`
+- [x] T007 [US1] Update right-hand settings panel to filter by `selectedCategoryId` and format display labels in `web/src/components/ConfigModal.vue`
+- [x] T008 [US1] Apply two-column desktop layouts and styles using vanilla CSS in `web/src/components/ConfigModal.vue`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
 
