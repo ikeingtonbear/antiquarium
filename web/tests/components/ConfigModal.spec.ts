@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, VueWrapper } from "@vue/test-utils";
 import ConfigModal from "@/components/ConfigModal.vue";
 import { SharkophagusApi } from "@/services/api";
+import type { PreferenceCategory } from "@/types";
 
 // Mock SharkophagusApi class
 vi.mock("@/services/api", () => {

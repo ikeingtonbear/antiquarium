@@ -35,7 +35,7 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [x] T002 Define `PreferenceCategory` interface in `web/src/types/index.ts`
-- [ ] T003 [P] Configure initial import and setup for responsive testing in `web/tests/components/ConfigModal.spec.ts`
+- [x] T003 [P] Configure initial import and setup for responsive testing in `web/tests/components/ConfigModal.spec.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
