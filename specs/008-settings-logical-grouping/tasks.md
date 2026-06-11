@@ -74,8 +74,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Update `filteredConfigs` computed property to support global search and define grouped search computed properties in `web/src/components/ConfigModal.vue`
-- [ ] T011 [US2] Update settings rendering template to display grouped search results headers when search is active and restore state when cleared in `web/src/components/ConfigModal.vue`
+- [x] T010 [US2] Update `filteredConfigs` computed property to support global search and define grouped search computed properties in `web/src/components/ConfigModal.vue`
+- [x] T011 [US2] Update settings rendering template to display grouped search results headers when search is active and restore state when cleared in `web/src/components/ConfigModal.vue`
 
 **Checkpoint**: At this point, User Stories 1 and 2 should both work independently.
 

@@ -93,12 +93,59 @@ const groupedConfigs = computed<Record<string, ConfigPreference[]>>(() => {
   return groups;
 });
 
+interface SearchGroup {
+  category: PreferenceCategory;
+  configs: ConfigPreference[];
+}
+
+const searchGroups = computed<SearchGroup[]>(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  if (!query) return [];
+
+  const matches = configs.value.filter((c) => c.name.toLowerCase().includes(query));
+
+  const groupsMap: Record<string, ConfigPreference[]> = {};
+  matches.forEach((c) => {
+    const parts = c.name.split(".");
+    let catId = "all";
+    if (parts.length > 1) {
+      const ns = parts[0];
+      if (ns === "gui") {
+        catId = "gui";
+      } else if (ns === "capture" || ns === "cap") {
+        catId = ns;
+      } else {
+        catId = "protocol-" + ns;
+      }
+    }
+    if (!groupsMap[catId]) {
+      groupsMap[catId] = [];
+    }
+    groupsMap[catId].push(c);
+  });
+
+  const list: SearchGroup[] = [];
+  categories.value.forEach((cat) => {
+    const catMatches = groupsMap[cat.id];
+    if (catMatches && catMatches.length > 0) {
+      list.push({
+        category: cat,
+        configs: catMatches
+      });
+    }
+  });
+
+  return list;
+});
+
 const activeCategoryLabel = computed(() => {
+  if (searchQuery.value.trim()) return "Search Results";
   const cat = categories.value.find((c) => c.id === selectedCategoryId.value);
   return cat ? cat.label : "Preferences";
 });
 
 const activeCategoryDescription = computed(() => {
+  if (searchQuery.value.trim()) return `Showing preferences matching "${searchQuery.value}" grouped by category.`;
   const cat = categories.value.find((c) => c.id === selectedCategoryId.value);
   if (!cat) return "";
   if (cat.id === "all") return "View and search all configuration preferences.";
@@ -108,9 +155,10 @@ const activeCategoryDescription = computed(() => {
   return "";
 });
 
-function getPrefDisplayName(configName: string): string {
-  if (selectedCategoryId.value === "all") return configName;
-  const activeCat = categories.value.find(c => c.id === selectedCategoryId.value);
+function getPrefDisplayName(configName: string, categoryId?: string): string {
+  const catId = categoryId || selectedCategoryId.value;
+  if (catId === "all") return configName;
+  const activeCat = categories.value.find(c => c.id === catId);
   if (activeCat && activeCat.prefix && configName.startsWith(activeCat.prefix)) {
     return configName.substring(activeCat.prefix.length);
   }
@@ -243,33 +291,41 @@ function handleOverlayClick(e: MouseEvent) {
             <aside class="sidebar-container" role="navigation" aria-label="Categories">
               <ul class="categories-list">
                 <li
-                  class="category-item"
-                  :class="{ active: selectedCategoryId === 'all' }"
-                  @click="selectedCategoryId = 'all'"
+                  v-if="searchQuery.trim()"
+                  class="category-item active search-results-item"
                 >
-                  All Preferences
+                  Search Results
                 </li>
-                <li
-                  v-for="cat in categories.filter(c => !c.isProtocol && c.id !== 'all')"
-                  :key="cat.id"
-                  class="category-item"
-                  :class="{ active: selectedCategoryId === cat.id }"
-                  @click="selectedCategoryId = cat.id"
-                >
-                  {{ cat.label }}
-                </li>
-                <li v-if="categories.some(c => c.isProtocol)" class="sidebar-section-header">
-                  Protocols
-                </li>
-                <li
-                  v-for="cat in categories.filter(c => c.isProtocol)"
-                  :key="cat.id"
-                  class="category-item protocol-item"
-                  :class="{ active: selectedCategoryId === cat.id }"
-                  @click="selectedCategoryId = cat.id"
-                >
-                  {{ cat.label }}
-                </li>
+                <template v-else>
+                  <li
+                    class="category-item"
+                    :class="{ active: selectedCategoryId === 'all' }"
+                    @click="selectedCategoryId = 'all'"
+                  >
+                    All Preferences
+                  </li>
+                  <li
+                    v-for="cat in categories.filter(c => !c.isProtocol && c.id !== 'all')"
+                    :key="cat.id"
+                    class="category-item"
+                    :class="{ active: selectedCategoryId === cat.id }"
+                    @click="selectedCategoryId = cat.id"
+                  >
+                    {{ cat.label }}
+                  </li>
+                  <li v-if="categories.some(c => c.isProtocol)" class="sidebar-section-header">
+                    Protocols
+                  </li>
+                  <li
+                    v-for="cat in categories.filter(c => c.isProtocol)"
+                    :key="cat.id"
+                    class="category-item protocol-item"
+                    :class="{ active: selectedCategoryId === cat.id }"
+                    @click="selectedCategoryId = cat.id"
+                  >
+                    {{ cat.label }}
+                  </li>
+                </template>
               </ul>
             </aside>
 
@@ -285,84 +341,181 @@ function handleOverlayClick(e: MouseEvent) {
                   <p class="category-description">{{ activeCategoryDescription }}</p>
                 </div>
 
-                <div v-if="filteredConfigs.length === 0" class="empty-state">
-                  No matching preferences found.
-                </div>
-                <div v-else class="configs-list">
-                  <div
-                    v-for="config in filteredConfigs"
-                    :key="config.name"
-                    class="config-item"
-                  >
-                    <div class="config-info">
-                      <span class="config-name">{{ getPrefDisplayName(config.name) }}</span>
-                      <span v-if="selectedCategoryId !== 'all'" class="config-full-name">{{ config.name }}</span>
-                      <span class="config-type-badge">{{ config.type }}</span>
-                    </div>
-                    <div class="config-control">
-                      <!-- Checkbox for boolean -->
-                      <input
-                        v-if="config.type === 'boolean'"
-                        type="checkbox"
-                        :checked="config.value"
-                        :disabled="!sessionId"
-                        @change="
-                          handleUpdate(
-                            config,
-                            ($event.target as HTMLInputElement).checked,
-                          )
-                        "
-                        class="checkbox-input"
-                      />
-
-                      <!-- Select dropdown for enum -->
-                      <select
-                        v-else-if="config.type === 'enum' && config.choices"
-                        :value="config.value"
-                        :disabled="!sessionId"
-                        @change="
-                          handleUpdate(
-                            config,
-                            ($event.target as HTMLSelectElement).value,
-                          )
-                        "
-                        class="select-input"
-                      >
-                        <option
-                          v-for="choice in config.choices"
-                          :key="choice.value"
-                          :value="choice.description"
+                <!-- If search query is active, render grouped results -->
+                <div v-if="searchQuery.trim()" class="search-results-container">
+                  <div v-if="searchGroups.length === 0" class="empty-state">
+                    No matching preferences found.
+                  </div>
+                  <div v-else class="search-groups-list">
+                    <div 
+                      v-for="group in searchGroups" 
+                      :key="group.category.id"
+                      class="search-group"
+                    >
+                      <h4 class="search-group-header">{{ group.category.label }}</h4>
+                      <div class="configs-list">
+                        <div
+                          v-for="config in group.configs"
+                          :key="config.name"
+                          class="config-item"
                         >
-                          {{ choice.description }}
-                        </option>
-                      </select>
+                          <div class="config-info">
+                            <span class="config-name">{{ getPrefDisplayName(config.name, group.category.id) }}</span>
+                            <span class="config-full-name">{{ config.name }}</span>
+                            <span class="config-type-badge">{{ config.type }}</span>
+                          </div>
+                          <div class="config-control">
+                            <!-- Checkbox for boolean -->
+                            <input
+                              v-if="config.type === 'boolean'"
+                              type="checkbox"
+                              :checked="config.value"
+                              :disabled="!sessionId"
+                              @change="
+                                handleUpdate(
+                                  config,
+                                  ($event.target as HTMLInputElement).checked,
+                                )
+                              "
+                              class="checkbox-input"
+                            />
 
-                      <!-- Readonly for table/unknown -->
-                      <input
-                        v-else-if="
-                          config.type === 'table' || config.type === 'unknown'
-                        "
-                        type="text"
-                        :value="config.value"
-                        readonly
-                        class="text-input readonly"
-                      />
+                            <!-- Select dropdown for enum -->
+                            <select
+                              v-else-if="config.type === 'enum' && config.choices"
+                              :value="config.value"
+                              :disabled="!sessionId"
+                              @change="
+                                handleUpdate(
+                                  config,
+                                  ($event.target as HTMLSelectElement).value,
+                                )
+                              "
+                              class="select-input"
+                            >
+                              <option
+                                v-for="choice in config.choices"
+                                :key="choice.value"
+                                :value="choice.description"
+                              >
+                                {{ choice.description }}
+                              </option>
+                            </select>
 
-                      <!-- Text input for others -->
-                      <input
-                        v-else
-                        type="text"
-                        :value="config.value"
-                        :disabled="!sessionId"
-                        @blur="
-                          handleUpdate(
-                            config,
-                            ($event.target as HTMLInputElement).value,
-                          )
-                        "
-                        @keyup.enter="($event.target as HTMLInputElement).blur()"
-                        class="text-input"
-                      />
+                            <!-- Readonly for table/unknown -->
+                            <input
+                              v-else-if="
+                                config.type === 'table' || config.type === 'unknown'
+                              "
+                              type="text"
+                              :value="config.value"
+                              readonly
+                              class="text-input readonly"
+                            />
+
+                            <!-- Text input for others -->
+                            <input
+                              v-else
+                              type="text"
+                              :value="config.value"
+                              :disabled="!sessionId"
+                              @blur="
+                                handleUpdate(
+                                  config,
+                                  ($event.target as HTMLInputElement).value,
+                                )
+                              "
+                              @keyup.enter="($event.target as HTMLInputElement).blur()"
+                              class="text-input"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- If search is NOT active, render standard category view -->
+                <div v-else>
+                  <div v-if="filteredConfigs.length === 0" class="empty-state">
+                    No matching preferences found.
+                  </div>
+                  <div v-else class="configs-list">
+                    <div
+                      v-for="config in filteredConfigs"
+                      :key="config.name"
+                      class="config-item"
+                    >
+                      <div class="config-info">
+                        <span class="config-name">{{ getPrefDisplayName(config.name) }}</span>
+                        <span v-if="selectedCategoryId !== 'all'" class="config-full-name">{{ config.name }}</span>
+                        <span class="config-type-badge">{{ config.type }}</span>
+                      </div>
+                      <div class="config-control">
+                        <!-- Checkbox for boolean -->
+                        <input
+                          v-if="config.type === 'boolean'"
+                          type="checkbox"
+                          :checked="config.value"
+                          :disabled="!sessionId"
+                          @change="
+                            handleUpdate(
+                              config,
+                              ($event.target as HTMLInputElement).checked,
+                            )
+                          "
+                          class="checkbox-input"
+                        />
+
+                        <!-- Select dropdown for enum -->
+                        <select
+                          v-else-if="config.type === 'enum' && config.choices"
+                          :value="config.value"
+                          :disabled="!sessionId"
+                          @change="
+                            handleUpdate(
+                              config,
+                              ($event.target as HTMLSelectElement).value,
+                            )
+                          "
+                          class="select-input"
+                        >
+                          <option
+                            v-for="choice in config.choices"
+                            :key="choice.value"
+                            :value="choice.description"
+                          >
+                            {{ choice.description }}
+                          </option>
+                        </select>
+
+                        <!-- Readonly for table/unknown -->
+                        <input
+                          v-else-if="
+                            config.type === 'table' || config.type === 'unknown'
+                          "
+                          type="text"
+                          :value="config.value"
+                          readonly
+                          class="text-input readonly"
+                        />
+
+                        <!-- Text input for others -->
+                        <input
+                          v-else
+                          type="text"
+                          :value="config.value"
+                          :disabled="!sessionId"
+                          @blur="
+                            handleUpdate(
+                              config,
+                              ($event.target as HTMLInputElement).value,
+                            )
+                          "
+                          @keyup.enter="($event.target as HTMLInputElement).blur()"
+                          class="text-input"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -711,6 +864,28 @@ function handleOverlayClick(e: MouseEvent) {
   border-style: dashed;
   color: #64748b;
   cursor: default;
+}
+
+.search-results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.search-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.search-group-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3b82f6;
+  margin: 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px dashed rgba(59, 130, 246, 0.2);
+  letter-spacing: 0.025em;
 }
 
 /* Transitions */
