@@ -229,3 +229,10 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
  * Maximum file size label for display.
  */
 export const MAX_FILE_SIZE_LABEL = "10 MB";
+
+export interface PreferenceCategory {
+  id: string;
+  label: string;
+  prefix?: string;
+  isProtocol?: boolean;
+}
