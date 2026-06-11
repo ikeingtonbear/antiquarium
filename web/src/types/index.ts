@@ -236,3 +236,31 @@ export interface PreferenceCategory {
   prefix?: string;
   isProtocol?: boolean;
 }
+
+/**
+ * Represents a dynamically created visual group of related preferences
+ * that share a common prefix segment within a category.
+ *
+ * @see data-model.md §2 — PreferenceGroup
+ */
+export interface PreferenceGroup {
+  /** Unique identifier for the group (e.g. "capture-devices") */
+  id: string;
+  /** Human-readable title of the group (e.g. "Devices") */
+  title: string;
+  /** Shared prefix used for grouping (e.g. "devices_") */
+  prefix: string;
+  /** List of settings under this group */
+  preferences: ConfigPreference[];
+}
+
+/**
+ * Represents the organized structure of settings for a selected category,
+ * with preferences split into standalone items and visual sub-groups.
+ */
+export interface CategoryViewData {
+  /** Standalone preferences that do not share a prefix with others */
+  standalonePreferences: ConfigPreference[];
+  /** Grouped preferences organized by shared prefix */
+  preferenceGroups: PreferenceGroup[];
+}
