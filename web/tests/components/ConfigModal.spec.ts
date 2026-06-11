@@ -24,8 +24,12 @@ vi.mock("@/services/api", () => {
   return {
     SharkophagusApi: vi.fn().mockImplementation(() => {
       return {
-        getSystemConfig: vi.fn().mockImplementation(() => Promise.resolve(getMockConfig())),
-        getSessionConfig: vi.fn().mockImplementation(() => Promise.resolve(getMockConfig())),
+        getSystemConfig: vi
+          .fn()
+          .mockImplementation(() => Promise.resolve(getMockConfig())),
+        getSessionConfig: vi
+          .fn()
+          .mockImplementation(() => Promise.resolve(getMockConfig())),
         updateSessionConfig: vi.fn().mockResolvedValue(undefined),
       };
     }),
@@ -292,7 +296,9 @@ describe("ConfigModal", () => {
     expect(categoryItems.length).toBeGreaterThan(0);
 
     // Click on 'udp' category
-    const udpCategory = categoryItems.find((el) => el.text().includes("udp") || el.text().includes("UDP"));
+    const udpCategory = categoryItems.find(
+      (el) => el.text().includes("udp") || el.text().includes("UDP"),
+    );
     expect(udpCategory).toBeDefined();
 
     await udpCategory?.trigger("click");
@@ -334,7 +340,9 @@ describe("ConfigModal", () => {
 
     // Select 'All Preferences'
     const categoryItems = wrapper.findAll(".category-item");
-    const allCategory = categoryItems.find((el) => el.text().includes("All Preferences"));
+    const allCategory = categoryItems.find((el) =>
+      el.text().includes("All Preferences"),
+    );
     expect(allCategory).toBeDefined();
     await allCategory?.trigger("click");
     await wrapper.vm.$nextTick();
@@ -352,5 +360,56 @@ describe("ConfigModal", () => {
 
     // Verify they do not show the redundant small full name subtitle
     expect(displayedItems[4].find(".config-full-name").exists()).toBe(false);
+  });
+
+  it("collapses the sidebar into a top dropdown selector on mobile screens", async () => {
+    await vi.dynamicImportSettled();
+
+    // Mount a new instance to test lifecycle resize hook
+    const mobileWrapper = mount(ConfigModal, {
+      props: {
+        isOpen: true,
+        sessionId: null,
+      },
+      global: {
+        provide: {
+          api: mockApiInstance,
+        },
+      },
+    });
+
+    await vi.dynamicImportSettled();
+    await mobileWrapper.vm.$nextTick();
+
+    // Mock window.innerWidth to mobile size
+    Object.defineProperty(window, "innerWidth", {
+      writable: true,
+      configurable: true,
+      value: 500,
+    });
+    window.dispatchEvent(new Event("resize"));
+    await mobileWrapper.vm.$nextTick();
+
+    // Verify sidebar is hidden/not rendered
+    expect(mobileWrapper.find(".sidebar-container").exists()).toBe(false);
+
+    // Verify mobile dropdown selector exists
+    const mobileSelect = mobileWrapper.find("select.mobile-category-select");
+    expect(mobileSelect.exists()).toBe(true);
+
+    // Verify select contains correct categories
+    const options = mobileSelect.findAll("option");
+    expect(options.length).toBeGreaterThan(0);
+
+    // Change category to 'protocol-udp' using select dropdown
+    await mobileSelect.setValue("protocol-udp");
+    await mobileWrapper.vm.$nextTick();
+
+    // Check that udp.check_checksum is filtered
+    const displayedItems = mobileWrapper.findAll(".config-item");
+    expect(displayedItems.length).toBe(1);
+    expect(displayedItems[0].text()).toContain("check_checksum");
+
+    mobileWrapper.unmount();
   });
 });

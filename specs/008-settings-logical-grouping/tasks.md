@@ -103,12 +103,12 @@
 
 **Purpose**: Responsive layout, transitions, linting, and final validation.
 
-- [ ] T014 [P] Write failing test for mobile resizing and dropdown selector display in `web/tests/components/ConfigModal.spec.ts`
-- [ ] T015 Implement `isMobile` viewport listener and responsive top dropdown category select menu in `web/src/components/ConfigModal.vue`
-- [ ] T016 [P] Add CSS transitions and Vue transition tags for smooth category content changes in `web/src/components/ConfigModal.vue`
-- [ ] T017 [P] Run linter and formatter scripts on modified files to verify styling compliance in `web/src/components/ConfigModal.vue` and `web/tests/components/ConfigModal.spec.ts`
-- [ ] T018 Run the test suite and verify all unit tests pass in `web/`
-- [ ] T019 Run quickstart.md manual validation checks to confirm feature completion in `web/`
+- [x] T014 [P] Write failing test for mobile resizing and dropdown selector display in `web/tests/components/ConfigModal.spec.ts`
+- [x] T015 Implement `isMobile` viewport listener and responsive top dropdown category select menu in `web/src/components/ConfigModal.vue`
+- [x] T016 [P] Add CSS transitions and Vue transition tags for smooth category content changes in `web/src/components/ConfigModal.vue`
+- [x] T017 [P] Run linter and formatter scripts on modified files to verify styling compliance in `web/src/components/ConfigModal.vue` and `web/tests/components/ConfigModal.spec.ts`
+- [x] T018 Run the test suite and verify all unit tests pass in `web/`
+- [x] T019 Run quickstart.md manual validation checks to confirm feature completion in `web/`
 
 ---
 
