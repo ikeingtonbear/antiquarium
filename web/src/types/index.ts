@@ -43,6 +43,8 @@ export interface CaptureStatistics {
   bytes?: number;
   /** Filename of the loaded PCAP */
   filename?: string;
+  /** List of column titles configured in Wireshark */
+  columns?: string[];
 }
 
 /**
@@ -203,6 +205,20 @@ export interface ApiClient {
     name: string,
     value: any,
   ): Promise<void>;
+
+  /**
+   * Fetches packet frames from a loaded capture session.
+   * @param sessionId - The UUID of the session
+   * @param skip - Number of frames to skip
+   * @param limit - Maximum number of frames to return
+   * @param filter - Wireshark display filter to apply
+   */
+  getSessionFrames(
+    sessionId: string,
+    skip?: number,
+    limit?: number,
+    filter?: string,
+  ): Promise<Frame[]>;
 }
 
 /* ──────────────────────────────────────────────────────
@@ -263,4 +279,28 @@ export interface CategoryViewData {
   standalonePreferences: ConfigPreference[];
   /** Grouped preferences organized by shared prefix */
   preferenceGroups: PreferenceGroup[];
+}
+
+/**
+ * Represents a dissected packet frame returned from the backend.
+ */
+export interface Frame {
+  /** The 1-based sequential packet index */
+  num: number;
+  /** Ordered array of text metadata values */
+  c: string[];
+}
+
+/**
+ * Represents client-side customization state for column headers.
+ */
+export interface ColumnLayoutConfig {
+  /** Unique technical name of the column */
+  name: string;
+  /** Human-readable display label */
+  label: string;
+  /** Toggle indicator for table rendering visibility */
+  visible: boolean;
+  /** Optional width in pixels for resizable columns */
+  width?: number;
 }
