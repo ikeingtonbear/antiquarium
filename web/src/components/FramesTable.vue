@@ -606,7 +606,6 @@ onMounted(() => {
   letter-spacing: 0.05em;
   z-index: var(--z-raised);
   user-select: none;
-  position: relative; /* Containing block for resize handles */
 }
 
 .table-header.draggable {
