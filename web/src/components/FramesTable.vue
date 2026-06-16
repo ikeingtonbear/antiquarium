@@ -585,13 +585,24 @@ onMounted(() => {
 }
 
 /* Locked Leftmost Column */
-.table-header.locked,
 .table-cell.locked {
   position: sticky;
   left: 0;
   background: #0f1524;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 5;
+  width: 65px;
+  min-width: 65px;
+  text-align: center;
+}
+
+.table-header.locked {
+  position: sticky;
+  left: 0;
+  top: 0;
+  background: #0f1524;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 15; /* Higher than regular headers (z-raised: 10) to stay on top during horizontal scroll */
   width: 65px;
   min-width: 65px;
   text-align: center;
