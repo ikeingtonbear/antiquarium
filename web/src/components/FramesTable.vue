@@ -39,6 +39,49 @@ const isDropdownOpen = ref<boolean>(false);
 /* Drag & Drop State */
 let draggedIndex: number | null = null;
 
+function getDefaultWidth(name: string): number {
+  switch (name) {
+    case "Time": return 100;
+    case "Source": return 150;
+    case "Destination": return 150;
+    case "Protocol": return 90;
+    case "Length": return 80;
+    case "Info": return 450;
+    default: return 150;
+  }
+}
+
+/* Resizing State */
+let activeResizeCol: ColumnLayoutConfig | null = null;
+let startX = 0;
+let startWidth = 0;
+
+function startResize(e: MouseEvent, col: ColumnLayoutConfig) {
+  activeResizeCol = col;
+  startX = e.clientX;
+  const thElement = (e.target as HTMLElement).parentElement;
+  startWidth = col.width || (thElement ? thElement.offsetWidth : 150);
+
+  window.addEventListener("mousemove", onResize);
+  window.addEventListener("mouseup", stopResize);
+  document.body.classList.add("is-resizing-column");
+}
+
+function onResize(e: MouseEvent) {
+  if (!activeResizeCol) return;
+  const deltaX = e.clientX - startX;
+  const newWidth = Math.max(50, startWidth + deltaX);
+  activeResizeCol.width = newWidth;
+}
+
+function stopResize() {
+  activeResizeCol = null;
+  window.removeEventListener("mousemove", onResize);
+  window.removeEventListener("mouseup", stopResize);
+  document.body.classList.remove("is-resizing-column");
+  saveLayout();
+}
+
 /* Load Column layout config from LocalStorage or initialize defaults */
 function initColumns() {
   const firstCol = props.columns[0] || "No.";
@@ -47,7 +90,7 @@ function initColumns() {
   try {
     const cached = localStorage.getItem("sharkophagus_columns_layout");
     if (cached) {
-      const { visibleNames, orderNames } = JSON.parse(cached);
+      const { visibleNames, orderNames, widths = {} } = JSON.parse(cached);
 
       // Reconstruct based on cached order, verifying they still exist in props.columns
       const ordered: ColumnLayoutConfig[] = [];
@@ -64,6 +107,7 @@ function initColumns() {
             name,
             label: name,
             visible: visibleNames.includes(name),
+            width: widths[name] || getDefaultWidth(name),
           });
         }
       });
@@ -75,6 +119,7 @@ function initColumns() {
             name,
             label: name,
             visible: true,
+            width: widths[name] || getDefaultWidth(name),
           });
         }
       });
@@ -96,6 +141,7 @@ function initColumns() {
     name,
     label: name,
     visible: true,
+    width: getDefaultWidth(name),
   }));
 }
 
@@ -106,9 +152,14 @@ function saveLayout() {
       .filter((c) => c.visible)
       .map((c) => c.name);
     const orderNames = columns.value.map((c) => c.name);
+    const widths = columns.value.reduce((acc, c) => {
+      if (c.width) acc[c.name] = c.width;
+      return acc;
+    }, {} as Record<string, number>);
+
     localStorage.setItem(
       "sharkophagus_columns_layout",
-      JSON.stringify({ visibleNames, orderNames }),
+      JSON.stringify({ visibleNames, orderNames, widths }),
     );
   } catch {
     // Ignore storage failures
@@ -336,6 +387,14 @@ onMounted(() => {
     <!-- Table Display Container -->
     <div v-else class="table-scroll-container" @scroll="onScroll">
       <table class="frames-table">
+        <colgroup>
+          <col style="width: 65px; min-width: 65px;" />
+          <col
+            v-for="col in visibleColumns"
+            :key="col.name"
+            :style="{ width: col.width ? col.width + 'px' : 'auto' }"
+          />
+        </colgroup>
         <thead>
           <tr>
             <!-- Packet Number column is locked, not draggable -->
@@ -353,12 +412,16 @@ onMounted(() => {
                 <GripVertical class="grip-icon" />
                 <span>{{ col.label }}</span>
               </div>
+              <div
+                class="resize-handle"
+                @mousedown.stop.prevent="startResize($event, col)"
+              ></div>
             </th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="frame in frames" :key="frame.num" class="table-row">
-            <td class="table-cell locked text-mono text-accent">
+            <td class="table-cell locked text-mono text-accent" :title="String(frame.num)">
               {{ frame.num }}
             </td>
             <td
@@ -366,6 +429,7 @@ onMounted(() => {
               :key="col.name"
               class="table-cell text-mono"
               :class="getCellClass(col.name, frame)"
+              :title="getCellValue(col.name, frame)"
             >
               {{ getCellValue(col.name, frame) }}
             </td>
@@ -525,6 +589,7 @@ onMounted(() => {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  table-layout: fixed;
 }
 
 /* Persistent Header */
@@ -541,6 +606,7 @@ onMounted(() => {
   letter-spacing: 0.05em;
   z-index: var(--z-raised);
   user-select: none;
+  position: relative; /* Containing block for resize handles */
 }
 
 .table-header.draggable {
@@ -555,6 +621,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .grip-icon {
@@ -562,6 +631,25 @@ onMounted(() => {
   height: 12px;
   color: var(--color-text-muted);
   opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* Resize Handle */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  transition: background var(--duration-fast) ease;
+  z-index: var(--z-raised);
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: rgba(6, 182, 212, 0.4);
 }
 
 /* Rows & Cells */
@@ -581,7 +669,6 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 280px;
 }
 
 /* Locked Leftmost Column */
@@ -741,5 +828,16 @@ onMounted(() => {
   to {
     transform: rotate(360deg);
   }
+}
+</style>
+
+<style>
+body.is-resizing-column {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+body.is-resizing-column * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 </style>

@@ -301,4 +301,6 @@ export interface ColumnLayoutConfig {
   label: string;
   /** Toggle indicator for table rendering visibility */
   visible: boolean;
+  /** Optional width in pixels for resizable columns */
+  width?: number;
 }

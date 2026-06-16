@@ -284,4 +284,32 @@ describe("FramesTable", () => {
     expect(wrapper.find(".frames-error-banner").exists()).toBe(false);
     expect(wrapper.findAll(".table-row").length).toBe(2);
   });
+
+  it("resizes columns on mousedown and mousemove", async () => {
+    wrapper = createWrapper();
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    const resizeHandles = wrapper.findAll(".resize-handle");
+    expect(resizeHandles.length).toBeGreaterThan(0);
+
+    // Trigger mousedown on the first resize handle
+    await resizeHandles[0].trigger("mousedown", { clientX: 100 });
+
+    // Trigger mousemove on window
+    const moveEvent = new MouseEvent("mousemove", { clientX: 150 });
+    window.dispatchEvent(moveEvent);
+    await wrapper.vm.$nextTick();
+
+    // Trigger mouseup on window
+    const upEvent = new MouseEvent("mouseup");
+    window.dispatchEvent(upEvent);
+    await wrapper.vm.$nextTick();
+
+    // Verify layout was saved
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      "sharkophagus_columns_layout",
+      expect.stringContaining('"widths"'),
+    );
+  });
 });
