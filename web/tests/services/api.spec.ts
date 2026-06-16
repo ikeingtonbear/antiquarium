@@ -406,4 +406,46 @@ describe("SharkophagusApi", () => {
       });
     });
   });
+
+  /* ──────────────────────────────────────────────────
+     T004: getSessionFrames
+     ────────────────────────────────────────────────── */
+  describe("getSessionFrames", () => {
+    it("sends a GET request to /sessions/{sessionId}/frames with parameters", async () => {
+      const mockFrames = [
+        { num: 1, c: ["0.0", "1.1.1.1", "2.2.2.2", "TCP", "64", "Info"] },
+      ];
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockFrames),
+      });
+
+      const result = await api.getSessionFrames("session-123", 10, 50, "ip");
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        "http://localhost:8080/v1/sessions/session-123/frames?skip=10&limit=50&filter=ip",
+      );
+      expect(result).toEqual(mockFrames);
+    });
+
+    it("throws on 404 (session not found)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: () =>
+          Promise.resolve({
+            code: "NOT_FOUND",
+            message: "Session not found",
+          }),
+      });
+
+      await expect(api.getSessionFrames("missing-session")).rejects.toThrow(
+        "Session not found",
+      );
+    });
+  });
 });

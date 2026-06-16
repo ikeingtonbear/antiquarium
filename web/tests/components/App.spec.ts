@@ -20,6 +20,7 @@ vi.mock("@/services/api", () => {
   MockApi.prototype.getAnalysis = vi.fn();
   MockApi.prototype.closeSession = vi.fn();
   MockApi.prototype.getSystemInfo = vi.fn();
+  MockApi.prototype.getSessionFrames = vi.fn().mockResolvedValue([]);
   return { SharkophagusApi: MockApi };
 });
 

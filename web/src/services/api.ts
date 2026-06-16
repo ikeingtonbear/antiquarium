@@ -15,6 +15,7 @@ import type {
   ErrorPayload,
   SystemInfo,
   ConfigPreference,
+  Frame,
 } from "../types";
 
 /**
@@ -270,6 +271,46 @@ export class SharkophagusApi implements ApiClient {
       const error = await this.parseError(response);
       throw new Error(error.message);
     }
+  }
+
+  /**
+   * Fetches packet frames from a loaded capture session.
+   */
+  async getSessionFrames(
+    sessionId: string,
+    skip?: number,
+    limit?: number,
+    filter?: string,
+  ): Promise<Frame[]> {
+    const params = new URLSearchParams();
+    if (skip !== undefined) params.append("skip", skip.toString());
+    if (limit !== undefined) params.append("limit", limit.toString());
+    if (filter) params.append("filter", filter);
+
+    const queryString = params.toString();
+    const url = queryString
+      ? `${this.baseUrl}/sessions/${sessionId}/frames?${queryString}`
+      : `${this.baseUrl}/sessions/${sessionId}/frames`;
+
+    let response: Response;
+
+    try {
+      response = await fetch(url);
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error("Session not found");
+      }
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return response.json();
   }
 
   /**

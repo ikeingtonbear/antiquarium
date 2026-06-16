@@ -25,6 +25,7 @@ import AppFooter from "./components/AppFooter.vue";
 import SystemInfoModal from "./components/SystemInfoModal.vue";
 import SettingsMenu from "./components/SettingsMenu.vue";
 import ConfigModal from "./components/ConfigModal.vue";
+import FramesTable from "./components/FramesTable.vue";
 import { SharkophagusApi } from "./services/api";
 
 /* ── Reactive State ── */
@@ -243,6 +244,7 @@ function handleOpenInfo() {
         key="dashboard"
         class="app-view"
         :class="{ 'is-exiting': isTransitioning }"
+        style="display: flex; flex-direction: column; gap: var(--space-8)"
       >
         <StatsDashboard
           v-if="statistics && session"
@@ -252,6 +254,13 @@ function handleOpenInfo() {
           :is-deleting="appState === 'deleting'"
           @end-session="handleAcknowledge"
           @show-details="isAnalysisModalOpen = true"
+        />
+
+        <FramesTable
+          v-if="session && statistics"
+          :session-id="session.id"
+          :columns="statistics.columns && statistics.columns.length > 0 ? statistics.columns : ['No.', 'Time', 'Source', 'Destination', 'Protocol', 'Length', 'Info']"
+          :total-frames="statistics.frames"
         />
 
         <AnalysisModal
