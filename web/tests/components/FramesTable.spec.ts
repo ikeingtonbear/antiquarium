@@ -120,7 +120,10 @@ describe("FramesTable", () => {
 
     getSessionFramesMock.mockClear();
     getSessionFramesMock.mockResolvedValue([
-      { num: 3, c: ["3", "0.002", "10.0.0.1", "10.0.0.2", "TCP", "66", "ACK", "val3"] },
+      {
+        num: 3,
+        c: ["3", "0.002", "10.0.0.1", "10.0.0.2", "TCP", "66", "ACK", "val3"],
+      },
     ]);
 
     // Simulate scroll to bottom
@@ -311,5 +314,19 @@ describe("FramesTable", () => {
       "sharkophagus_columns_layout",
       expect.stringContaining('"widths"'),
     );
+  });
+
+  /* ──────────────────────────────────────────────────
+     T009 [US3]: 12 packet rows scroll limit
+     ────────────────────────────────────────────────── */
+  it("constrains scroll container max-height to 420px for 12 rows limit", async () => {
+    wrapper = createWrapper();
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    const scrollContainer = wrapper.find(".table-scroll-container");
+    expect(scrollContainer.exists()).toBe(true);
+
+    expect(scrollContainer.attributes("style")).toContain("max-height: 420px");
   });
 });

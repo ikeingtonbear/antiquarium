@@ -86,7 +86,7 @@ describe("StatsDashboard", () => {
       expect(wrapper.text()).toContain("4.529s");
     });
 
-    it("renders exactly four stat cards with appropriate labels", () => {
+    it("renders compact horizontal header elements with inline stats and logo", () => {
       wrapper = mount(StatsDashboard, {
         props: {
           statistics: defaultStats,
@@ -97,18 +97,21 @@ describe("StatsDashboard", () => {
       });
 
       const text = wrapper.text();
-      expect(text).toContain("File Name");
-      expect(text).toContain("File Size");
-      expect(text).toContain("Frames");
-      expect(text).toContain("Duration");
+      // Logo check
+      expect(text).toContain("Sharkophagus");
 
-      // Assert that old cards are NOT rendered
-      expect(text).not.toContain("Bytes");
-      expect(text).not.toContain("First Packet");
-      expect(text).not.toContain("Last Packet");
+      // Inline stats check
+      expect(text).toContain("capture_traffic.pcapng");
+      expect(text).toContain("512.00 KB");
+      expect(text).toContain("1,280");
+      expect(text).toContain("4.529s");
 
-      const cards = wrapper.findAll(".stat-card");
-      expect(cards.length).toBe(4);
+      // Verify stats grid and cards are gone
+      expect(wrapper.find(".stats-grid").exists()).toBe(false);
+      expect(wrapper.find(".stat-card").exists()).toBe(false);
+
+      // Verify unified header structure
+      expect(wrapper.find(".stats-header-bar").exists()).toBe(true);
     });
   });
 

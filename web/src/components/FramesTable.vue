@@ -41,13 +41,20 @@ let draggedIndex: number | null = null;
 
 function getDefaultWidth(name: string): number {
   switch (name) {
-    case "Time": return 100;
-    case "Source": return 150;
-    case "Destination": return 150;
-    case "Protocol": return 90;
-    case "Length": return 80;
-    case "Info": return 450;
-    default: return 150;
+    case "Time":
+      return 100;
+    case "Source":
+      return 150;
+    case "Destination":
+      return 150;
+    case "Protocol":
+      return 90;
+    case "Length":
+      return 80;
+    case "Info":
+      return 450;
+    default:
+      return 150;
   }
 }
 
@@ -96,7 +103,9 @@ function initColumns() {
       const ordered: ColumnLayoutConfig[] = [];
 
       // Validate cache: if cached orderNames have no overlap with systemNames, discard cache
-      const hasOverlap = orderNames.some((name: string) => systemNames.includes(name));
+      const hasOverlap = orderNames.some((name: string) =>
+        systemNames.includes(name),
+      );
       if (!hasOverlap && systemNames.length > 0) {
         throw new Error("Cached layout mismatch");
       }
@@ -152,10 +161,13 @@ function saveLayout() {
       .filter((c) => c.visible)
       .map((c) => c.name);
     const orderNames = columns.value.map((c) => c.name);
-    const widths = columns.value.reduce((acc, c) => {
-      if (c.width) acc[c.name] = c.width;
-      return acc;
-    }, {} as Record<string, number>);
+    const widths = columns.value.reduce(
+      (acc, c) => {
+        if (c.width) acc[c.name] = c.width;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     localStorage.setItem(
       "sharkophagus_columns_layout",
@@ -336,7 +348,9 @@ onMounted(() => {
               <!-- No. is locked -->
               <label class="dropdown-item is-disabled">
                 <input type="checkbox" checked disabled />
-                <span class="checkbox-label text-secondary">{{ props.columns[0] || 'No.' }} (Locked)</span>
+                <span class="checkbox-label text-secondary"
+                  >{{ props.columns[0] || "No." }} (Locked)</span
+                >
               </label>
 
               <label
@@ -385,10 +399,15 @@ onMounted(() => {
     </div>
 
     <!-- Table Display Container -->
-    <div v-else class="table-scroll-container" @scroll="onScroll">
+    <div
+      v-else
+      class="table-scroll-container"
+      @scroll="onScroll"
+      style="max-height: 420px"
+    >
       <table class="frames-table">
         <colgroup>
-          <col style="width: 65px; min-width: 65px;" />
+          <col style="width: 65px; min-width: 65px" />
           <col
             v-for="col in visibleColumns"
             :key="col.name"
@@ -398,7 +417,7 @@ onMounted(() => {
         <thead>
           <tr>
             <!-- Packet Number column is locked, not draggable -->
-            <th class="table-header locked">{{ props.columns[0] || 'No.' }}</th>
+            <th class="table-header locked">{{ props.columns[0] || "No." }}</th>
             <th
               v-for="(col, index) in visibleColumns"
               :key="col.name"
@@ -421,7 +440,10 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr v-for="frame in frames" :key="frame.num" class="table-row">
-            <td class="table-cell locked text-mono text-accent" :title="String(frame.num)">
+            <td
+              class="table-cell locked text-mono text-accent"
+              :title="String(frame.num)"
+            >
               {{ frame.num }}
             </td>
             <td
@@ -575,10 +597,10 @@ onMounted(() => {
   user-select: none;
 }
 
-/* Scrollable Container (limited to 25 rows) */
+/* Scrollable Container (limited to 12 rows) */
 .table-scroll-container {
   width: 100%;
-  max-height: 600px; /* Capped to exactly fit 25 rows at ~24px line-height */
+  max-height: 420px; /* Capped to exactly fit 12 rows at ~35px row height */
   overflow: auto;
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.05);
