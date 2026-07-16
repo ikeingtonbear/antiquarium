@@ -460,4 +460,44 @@ describe("App", () => {
     expect(configModal.exists()).toBe(true);
     expect(configModal.props("isOpen")).toBe(true);
   });
+
+  /* ──────────────────────────────────────────────────
+     T003 [US1]: App header hiding & is-ready class
+     ────────────────────────────────────────────────── */
+  it("hides primary header and adds is-ready class in ready state", async () => {
+    const mockApi = SharkophagusApi.prototype;
+    (mockApi.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "session-1",
+      status: "active",
+      fileName: "test.pcap",
+      fileSize: 1024,
+    });
+    (mockApi.getStatistics as ReturnType<typeof vi.fn>).mockResolvedValue({
+      frames: 100,
+      duration: 1.5,
+      bytes: 1024,
+      filename: "test.pcap",
+    });
+    (mockApi.getAnalysis as ReturnType<typeof vi.fn>).mockResolvedValue({
+      frames: 100,
+      protocols: ["eth", "ip"],
+      first: 100,
+      last: 200,
+    });
+
+    wrapper = mount(App);
+    const fileUpload = wrapper.findComponent({ name: "FileUpload" });
+
+    const file = new File(["data"], "test.pcap");
+    await fileUpload.vm.$emit("upload", file);
+    await flushPromises();
+
+    // Check class .is-ready on app-container
+    const appContainer = wrapper.find(".app-container");
+    expect(appContainer.classes()).toContain("is-ready");
+
+    // Expect primary app-header is NOT rendered
+    const header = wrapper.find(".app-header");
+    expect(header.exists()).toBe(false);
+  });
 });

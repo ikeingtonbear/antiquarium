@@ -2,10 +2,8 @@
 /**
  * StatsDashboard — Capture Statistics Dashboard Component
  *
- * Displays packet capture analysis results in a responsive 2x2 card grid
- * with an Acknowledge button for session termination.
- *
- * @see plan.md §4 — Capture Statistics Dashboard
+ * Refactored to render as a compact, unified top horizontal navigation
+ * header to maximize screen space for the primary packet viewer.
  */
 
 import { computed } from "vue";
@@ -79,53 +77,44 @@ const cards = computed(() => [
     color: "accent",
   },
 ]);
-
-/* ── Handlers ── */
-function handleAcknowledge() {
-  if (!props.isDeleting) {
-    emit("acknowledge");
-  }
-}
 </script>
 
 <template>
-  <div class="stats-dashboard">
-    <h2 class="dashboard-title">
-      <span class="dashboard-title-icon" aria-hidden="true">📊</span>
-      Capture Analysis
-    </h2>
+  <div class="stats-header-bar">
+    <!-- Shrunken Logo & Tagline -->
+    <div class="header-logo-section">
+      <span class="logo-icon">🦈</span>
+      <span class="logo-title">Sharkophagus</span>
+      <span class="logo-tagline">Analysis</span>
+    </div>
 
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-      <div
-        v-for="card in cards"
-        :key="card.id"
-        class="stat-card card"
-        :class="`stat-card--${card.color}`"
-      >
-        <div class="stat-card-header">
-          <component
-            :is="card.icon"
-            :size="20"
-            :stroke-width="1.5"
-            aria-hidden="true"
-            class="stat-card-icon"
-          />
-          <span class="stat-card-label text-secondary">{{ card.label }}</span>
-        </div>
-        <p class="stat-card-value text-mono">{{ card.value }}</p>
+    <!-- Inline Metadata Details -->
+    <div class="header-meta-section">
+      <div v-for="card in cards" :key="card.id" class="meta-item">
+        <component
+          :is="card.icon"
+          :size="14"
+          :stroke-width="1.5"
+          aria-hidden="true"
+          class="meta-icon"
+        />
+        <span
+          class="meta-value text-mono"
+          :title="card.label + ': ' + card.value"
+          >{{ card.value }}</span
+        >
       </div>
     </div>
 
     <!-- Actions Bar -->
-    <div class="dashboard-actions">
+    <div class="header-actions-section">
       <button
         class="btn-end-session"
         :disabled="isDeleting"
         @click="emit('end-session')"
       >
         <span v-if="isDeleting" class="btn-spinner" aria-hidden="true"></span>
-        <span v-if="isDeleting">Closing Session...</span>
+        <span v-if="isDeleting">Closing...</span>
         <span v-else>End Session</span>
       </button>
 
@@ -141,121 +130,109 @@ function handleAcknowledge() {
 </template>
 
 <style scoped>
-.stats-dashboard {
+.stats-header-bar {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-8);
+  justify-content: space-between;
   width: 100%;
+  padding: var(--space-3) var(--space-5);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border-glass);
+  border-radius: var(--radius-lg);
+  gap: var(--space-4);
   animation: fadeIn var(--duration-slow) var(--ease-out-expo);
 }
 
-.dashboard-title {
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-semibold);
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.dashboard-title-icon {
-  font-size: 1.2em;
-}
-
-/* ── Stats Grid ── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4);
-  width: 100%;
-}
-
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-5);
-  transition:
-    transform var(--duration-normal) var(--ease-spring),
-    box-shadow var(--duration-normal) ease,
-    border-color var(--duration-normal) ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-}
-
-.stat-card--accent:hover {
-  border-color: rgba(6, 182, 212, 0.2);
-  box-shadow: var(--shadow-glow-accent);
-}
-
-.stat-card-header {
+.header-logo-section {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 
-.stat-card-icon {
-  color: var(--color-accent);
+.logo-icon {
+  font-size: 1.2rem;
 }
 
-.stat-card-label {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.stat-card-value {
-  font-size: var(--text-xl);
+.logo-title {
   font-weight: var(--weight-bold);
+  font-size: var(--text-base);
   color: var(--color-text-primary);
-  word-break: break-all;
 }
 
-/* ── Actions Bar ── */
-.dashboard-actions {
+.logo-tagline {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  padding-left: var(--space-2);
+}
+
+.header-meta-section {
   display: flex;
-  gap: var(--space-4);
-  justify-content: center;
   align-items: center;
-  width: 100%;
+  gap: var(--space-5);
+  overflow: hidden;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  min-width: 0;
+}
+
+.meta-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.meta-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-actions-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 .btn-end-session {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-4) var(--space-8);
-  font-size: var(--text-base);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   color: white;
   background: linear-gradient(135deg, var(--color-danger), #b91c1c);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md), var(--shadow-glow-danger);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm), var(--shadow-glow-danger);
   transition:
     transform var(--duration-normal) var(--ease-spring),
     box-shadow var(--duration-normal) ease,
     opacity var(--duration-normal) ease;
-  min-width: 180px;
+  cursor: pointer;
 }
 
 .btn-end-session:hover:not(:disabled) {
-  transform: scale(1.04);
+  transform: scale(1.03);
   box-shadow:
-    var(--shadow-lg),
-    0 0 30px rgba(244, 63, 94, 0.3);
+    var(--shadow-md),
+    0 0 15px rgba(244, 63, 94, 0.2);
 }
 
 .btn-end-session:active:not(:disabled) {
   transform: scale(0.98);
-}
-
-.btn-end-session:focus-visible {
-  outline: 2px solid var(--color-danger);
-  outline-offset: 2px;
 }
 
 .btn-end-session:disabled {
@@ -267,24 +244,24 @@ function handleAcknowledge() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-4) var(--space-8);
-  font-size: var(--text-base);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--color-border-glass);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   transition:
     transform var(--duration-normal) var(--ease-spring),
     background var(--duration-normal) ease,
     border-color var(--duration-normal) ease;
-  min-width: 180px;
+  cursor: pointer;
 }
 
 .btn-view-details:hover:not(:disabled) {
-  transform: scale(1.04);
-  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.03);
+  background: rgba(255, 255, 255, 0.1);
   border-color: var(--color-border-hover);
 }
 
@@ -292,24 +269,37 @@ function handleAcknowledge() {
   transform: scale(0.98);
 }
 
-/* ── Spinner ── */
+/* Spinner */
 .btn-spinner {
-  width: 18px;
-  height: 18px;
+  width: 12px;
+  height: 12px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-/* ── Responsive ── */
-@media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
   }
 
-  .stat-card-value {
-    font-size: var(--text-lg);
+  .header-meta-section {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .header-actions-section {
+    justify-content: flex-end;
   }
 }
 </style>

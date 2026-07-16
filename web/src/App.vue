@@ -171,8 +171,14 @@ function handleOpenInfo() {
 </script>
 
 <template>
-  <main class="app-container" :class="{ 'is-ready': appState === 'ready' || appState === 'deleting' }">
-    <header class="app-header">
+  <main
+    class="app-container"
+    :class="{ 'is-ready': appState === 'ready' || appState === 'deleting' }"
+  >
+    <header
+      class="app-header"
+      v-if="appState !== 'ready' && appState !== 'deleting'"
+    >
       <h1 class="app-title">
         <span class="app-title-icon">🦈</span>
         Sharkophagus
@@ -259,11 +265,23 @@ function handleOpenInfo() {
         <FramesTable
           v-if="session && statistics"
           :session-id="session.id"
-          :columns="statistics.columns && statistics.columns.length > 0
-            ? statistics.columns
-            : (systemInfo && systemInfo.columns && systemInfo.columns.length > 0
-                ? systemInfo.columns.map(c => c.name)
-                : ['No.', 'Time', 'Source', 'Destination', 'Protocol', 'Length', 'Info'])"
+          :columns="
+            statistics.columns && statistics.columns.length > 0
+              ? statistics.columns
+              : systemInfo &&
+                  systemInfo.columns &&
+                  systemInfo.columns.length > 0
+                ? systemInfo.columns.map((c) => c.name)
+                : [
+                    'No.',
+                    'Time',
+                    'Source',
+                    'Destination',
+                    'Protocol',
+                    'Length',
+                    'Info',
+                  ]
+          "
           :total-frames="statistics.frames"
         />
 
@@ -320,7 +338,9 @@ function handleOpenInfo() {
 }
 
 .app-container.is-ready {
-  max-width: 1200px;
+  max-width: 100%;
+  width: 100%;
+  padding: 0 var(--space-6);
 }
 
 .app-header {
