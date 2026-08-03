@@ -16,6 +16,7 @@ import type {
   SystemInfo,
   ConfigPreference,
   Frame,
+  FrameDetail,
 } from "../types";
 
 /**
@@ -305,6 +306,36 @@ export class SharkophagusApi implements ApiClient {
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error("Session not found");
+      }
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Fetches detailed information for a specific packet frame.
+   */
+  async getSessionFrameDetail(
+    sessionId: string,
+    frameId: number,
+  ): Promise<FrameDetail> {
+    const url = `${this.baseUrl}/sessions/${sessionId}/frames/${frameId}?proto=true`;
+
+    let response: Response;
+
+    try {
+      response = await fetch(url);
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error("Frame not found");
       }
       const error = await this.parseError(response);
       throw new Error(error.message);

@@ -448,4 +448,46 @@ describe("SharkophagusApi", () => {
       );
     });
   });
+
+  describe("getSessionFrameDetail", () => {
+    it("sends a GET request to /sessions/{sessionId}/frames/{frameId} with proto=true by default", async () => {
+      const mockDetail = {
+        err: 0,
+        tree: [{ label: "Ethernet II" }],
+        fol: [],
+        bytes: "abcd",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockDetail),
+      });
+
+      const result = await api.getSessionFrameDetail("session-123", 42);
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        "http://localhost:8080/v1/sessions/session-123/frames/42?proto=true",
+      );
+      expect(result).toEqual(mockDetail);
+    });
+
+    it("throws on 404 (frame not found)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: () =>
+          Promise.resolve({
+            code: "NOT_FOUND",
+            message: "Frame not found",
+          }),
+      });
+
+      await expect(
+        api.getSessionFrameDetail("session-123", 999),
+      ).rejects.toThrow("Frame not found");
+    });
+  });
 });
