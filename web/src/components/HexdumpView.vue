@@ -10,7 +10,14 @@
             v-for="(b, i) in row.bytes"
             :key="i"
             class="hex-byte"
-            :class="{ highlighted: isHighlighted(row.offset + i) }"
+            :class="{
+              hovered: isHovered(row.offset + i),
+              selected: isSelected(row.offset + i),
+              'selected-exact': isSelectedExact(row.offset + i)
+            }"
+            @mouseenter="$emit('hover-byte', [row.offset + i, 1])"
+            @mouseleave="$emit('hover-byte', null)"
+            @click="$emit('select-byte', [row.offset + i, 1])"
             >{{ b.hex }}</span
           >
         </span>
@@ -19,7 +26,14 @@
             v-for="(b, i) in row.bytes"
             :key="i"
             class="ascii-byte"
-            :class="{ highlighted: isHighlighted(row.offset + i) }"
+            :class="{
+              hovered: isHovered(row.offset + i),
+              selected: isSelected(row.offset + i),
+              'selected-exact': isSelectedExact(row.offset + i)
+            }"
+            @mouseenter="$emit('hover-byte', [row.offset + i, 1])"
+            @mouseleave="$emit('hover-byte', null)"
+            @click="$emit('select-byte', [row.offset + i, 1])"
             >{{ b.ascii }}</span
           >
         </span>
@@ -30,10 +44,18 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import type { ByteRange } from "../types";
 
 const props = defineProps<{
   bytes?: string;
-  activeRange?: [number, number] | null;
+  hoveredByteRange?: ByteRange | null;
+  selectedByteRange?: ByteRange | null;
+  selectedSingleByte?: number | null;
+}>();
+
+defineEmits<{
+  (e: "hover-byte", range: ByteRange | null): void;
+  (e: "select-byte", range: ByteRange | null): void;
 }>();
 
 const decodedBytes = computed(() => {
@@ -73,10 +95,20 @@ const hexdumpRows = computed(() => {
   return rows;
 });
 
-function isHighlighted(index: number) {
-  if (!props.activeRange) return false;
-  const [offset, length] = props.activeRange;
+function isHovered(index: number) {
+  if (!props.hoveredByteRange) return false;
+  const [offset, length] = props.hoveredByteRange;
   return index >= offset && index < offset + length;
+}
+
+function isSelected(index: number) {
+  if (!props.selectedByteRange) return false;
+  const [offset, length] = props.selectedByteRange;
+  return index >= offset && index < offset + length;
+}
+
+function isSelectedExact(index: number) {
+  return props.selectedSingleByte === index;
 }
 </script>
 
@@ -134,6 +166,11 @@ function isHighlighted(index: number) {
   margin-right: 16px;
 }
 
+.hex-byte,
+.ascii-byte {
+  cursor: pointer;
+}
+
 .hex-byte {
   margin-right: 4px;
 }
@@ -149,8 +186,20 @@ function isHighlighted(index: number) {
   text-align: center;
 }
 
-.highlighted {
-  background-color: var(--bg-highlight, rgba(156, 220, 254, 0.3));
+.hovered {
+  background-color: var(--bg-hover, rgba(200, 200, 200, 0.2));
+  color: #fff;
+  border-radius: 2px;
+}
+
+.selected {
+  background-color: var(--bg-highlight, rgba(156, 220, 254, 0.2));
+  color: #fff;
+  border-radius: 2px;
+}
+
+.selected-exact {
+  background-color: var(--bg-highlight-strong, rgba(156, 220, 254, 0.6));
   color: #fff;
   border-radius: 2px;
 }

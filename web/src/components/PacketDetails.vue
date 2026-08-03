@@ -13,14 +13,21 @@
         <div class="pane-content">
           <LayerView
             :tree="frameDetail?.tree"
-            @hover-node="activeByteRange = $event"
+            :hovered-byte-range="hoveredByteRange"
+            :selected-byte-range="selectedByteRange"
+            @hover-layer="hoveredByteRange = $event"
+            @select-layer="onLayerSelect"
           />
         </div>
       </div>
       <div class="pane pane-right">
         <HexdumpView
           :bytes="frameDetail?.bytes"
-          :active-range="activeByteRange"
+          :hovered-byte-range="hoveredByteRange"
+          :selected-byte-range="selectedByteRange"
+          :selected-single-byte="selectedSingleByte"
+          @hover-byte="onHexHover"
+          @select-byte="onHexSelect"
         />
       </div>
     </div>
@@ -29,7 +36,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import type { FrameDetail } from "../types";
+import type { FrameDetail, ByteRange } from "../types";
 import { SharkophagusApi } from "../services/api";
 import LayerView from "./LayerView.vue";
 import HexdumpView from "./HexdumpView.vue";
@@ -42,16 +49,66 @@ const props = defineProps<{
 const frameDetail = ref<FrameDetail | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const activeByteRange = ref<[number, number] | null>(null);
+const hoveredByteRange = ref<ByteRange | null>(null);
+const selectedByteRange = ref<ByteRange | null>(null);
+const selectedSingleByte = ref<number | null>(null);
 
 const api = new SharkophagusApi();
+
+function containsRange(h?: ByteRange, range?: ByteRange | null): boolean {
+  if (!h || !range) return false;
+  return h[0] <= range[0] && h[0] + h[1] >= range[0] + range[1];
+}
+
+function getDeepestLayerRange(nodes: any[] | undefined, range: ByteRange | null): ByteRange | null {
+  if (!nodes || !range) return range;
+  let bestMatch: ByteRange | null = null;
+  
+  function dfs(nList: any[]) {
+    for (const node of nList) {
+      if (node && typeof node === 'object' && node.h && containsRange(node.h, range)) {
+        bestMatch = node.h;
+        if (node.n && Array.isArray(node.n)) {
+          dfs(node.n);
+        }
+      }
+    }
+  }
+  
+  dfs(nodes);
+  return bestMatch || range;
+}
+
+function onHexHover(range: ByteRange | null) {
+  if (range && range[1] === 1) {
+    hoveredByteRange.value = getDeepestLayerRange(frameDetail.value?.tree, range);
+  } else {
+    hoveredByteRange.value = range;
+  }
+}
+
+function onHexSelect(range: ByteRange | null) {
+  if (range && range[1] === 1) {
+    selectedSingleByte.value = range[0];
+    selectedByteRange.value = getDeepestLayerRange(frameDetail.value?.tree, range);
+  } else {
+    selectedSingleByte.value = null;
+    selectedByteRange.value = range;
+  }
+}
+
+function onLayerSelect(range: ByteRange | null) {
+  selectedSingleByte.value = null;
+  selectedByteRange.value = range;
+}
 
 watch(
   () => props.frameId,
   async (newFrameId) => {
     if (newFrameId === null) {
       frameDetail.value = null;
-      activeByteRange.value = null;
+      hoveredByteRange.value = null;
+      selectedByteRange.value = null;
       return;
     }
 
