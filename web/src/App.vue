@@ -26,6 +26,7 @@ import SystemInfoModal from "./components/SystemInfoModal.vue";
 import SettingsMenu from "./components/SettingsMenu.vue";
 import ConfigModal from "./components/ConfigModal.vue";
 import FramesTable from "./components/FramesTable.vue";
+import PacketDetails from "./components/PacketDetails.vue";
 import { SharkophagusApi } from "./services/api";
 
 /* ── Reactive State ── */
@@ -37,6 +38,7 @@ const uploadProgress = ref<number>(0);
 const errorMessage = ref<string | null>(null);
 const isTransitioning = ref<boolean>(false);
 const isAnalysisModalOpen = ref<boolean>(false);
+const selectedFrameId = ref<number | null>(null);
 
 /* ── System Info State ── */
 const systemInfo = ref<SystemInfo | null>(null);
@@ -283,6 +285,13 @@ function handleOpenInfo() {
                   ]
           "
           :total-frames="statistics.frames"
+          @select-frame="selectedFrameId = $event"
+        />
+
+        <PacketDetails
+          v-if="session && statistics"
+          :session-id="session.id"
+          :frame-id="selectedFrameId"
         />
 
         <AnalysisModal

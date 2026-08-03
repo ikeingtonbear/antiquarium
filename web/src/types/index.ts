@@ -219,6 +219,16 @@ export interface ApiClient {
     limit?: number,
     filter?: string,
   ): Promise<Frame[]>;
+
+  /**
+   * Fetches detailed information for a specific packet frame.
+   * @param sessionId - The UUID of the session
+   * @param frameId - The frame number
+   */
+  getSessionFrameDetail(
+    sessionId: string,
+    frameId: number,
+  ): Promise<FrameDetail>;
 }
 
 /* ──────────────────────────────────────────────────────
@@ -303,4 +313,42 @@ export interface ColumnLayoutConfig {
   visible: boolean;
   /** Optional width in pixels for resizable columns */
   width?: number;
+}
+
+/**
+ * Represents a single protocol tree node in the frame detail.
+ */
+export interface FrameLayerNode {
+  /** Display label text */
+  l: string;
+  /** Raw packet byte range [offset, length] */
+  h?: [number, number];
+  /** Node type */
+  t?: "proto" | "text" | string;
+  /** Display filter expression */
+  f?: string;
+  /** Field name identifier */
+  fn?: string;
+  /** Entity ID integer */
+  e?: number;
+  /** Boolean indicating if field is generated/implicit */
+  g?: boolean;
+  /** Array of nested child nodes */
+  n?: FrameLayerNode[];
+}
+
+/**
+ * Represents the detailed information of a single packet/frame.
+ */
+export interface FrameDetail {
+  /** Error code from the backend (0 for success) */
+  err?: number;
+  /** The recursive, hierarchical breakdown of protocol layers */
+  tree?: FrameLayerNode[];
+  /** Follow streams information */
+  fol?: string[][];
+  /** Detailed follow stream objects list */
+  followers?: any[];
+  /** Base64 encoded or raw string representing the packet's raw bytes (to be rendered as hexdump) */
+  bytes?: string;
 }

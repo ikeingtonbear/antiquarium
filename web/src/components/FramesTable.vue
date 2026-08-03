@@ -24,6 +24,10 @@ const props = defineProps<{
   totalFrames: number;
 }>();
 
+const emit = defineEmits<{
+  (e: "select-frame", frameId: number): void;
+}>();
+
 const api = inject<ApiClient>("api");
 
 /* ── Reactive State ── */
@@ -439,7 +443,13 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="frame in frames" :key="frame.num" class="table-row">
+          <tr
+            v-for="frame in frames"
+            :key="frame.num"
+            class="table-row"
+            @click="emit('select-frame', frame.num)"
+            style="cursor: pointer"
+          >
             <td
               class="table-cell locked text-mono text-accent"
               :title="String(frame.num)"
