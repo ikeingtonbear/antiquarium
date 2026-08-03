@@ -5,22 +5,31 @@
     </div>
     <ul v-else class="layer-list">
       <li v-for="(node, index) in tree" :key="index" class="layer-node">
-        <!-- If it's a primitive or has no label/children, just render JSON -->
         <template v-if="typeof node !== 'object' || node === null">
           <div class="layer-value">{{ node }}</div>
         </template>
         <template v-else>
           <div
             class="layer-header"
-            @click="toggleNode(node)"
+            :class="{
+              hovered: isHovered(node),
+              selected: isSelected(node),
+            }"
+            @click="onNodeClick($event, node)"
             @mouseenter="onNodeHover(node)"
             @mouseleave="onNodeLeave"
           >
-            <span class="expander" v-if="hasChildren(node)">
+            <span
+              class="expander"
+              v-if="hasChildren(node)"
+              @click.stop="toggleNode(node)"
+            >
               {{ isExpanded(node) ? "▼" : "▶" }}
             </span>
             <span class="expander-placeholder" v-else></span>
-            <span class="layer-label">{{ node.l || "Unknown Layer" }}</span>
+            <span class="layer-content">
+              <span class="layer-label">{{ node.l || "Unknown Layer" }}</span>
+            </span>
           </div>
           <div
             class="layer-children"
@@ -28,7 +37,10 @@
           >
             <LayerView
               :tree="node.n"
-              @hover-node="emit('hover-node', $event)"
+              :hovered-byte-range="hoveredByteRange"
+              :selected-byte-range="selectedByteRange"
+              @hover-layer="emit('hover-layer', $event)"
+              @select-layer="emit('select-layer', $event)"
             />
           </div>
         </template>
@@ -38,13 +50,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
+import type { ByteRange } from "../types";
 
 const props = defineProps<{
   tree?: any[];
+  hoveredByteRange?: ByteRange | null;
+  selectedByteRange?: ByteRange | null;
 }>();
 
-// Simple Set to track expanded state of nodes by object reference
+const emit = defineEmits<{
+  (e: "hover-layer", range: ByteRange | null): void;
+  (e: "select-layer", range: ByteRange | null): void;
+}>();
+
 const expandedNodes = ref(new Set<any>());
 
 function toggleNode(node: any) {
@@ -64,23 +83,78 @@ function isExpanded(node: any): boolean {
   return expandedNodes.value.has(node);
 }
 
-const emit = defineEmits<{
-  (e: "hover-node", range: [number, number] | null): void;
-}>();
-
 function onNodeHover(node: any) {
   if (node.h && Array.isArray(node.h) && node.h.length === 2) {
-    emit("hover-node", node.h as [number, number]);
+    emit("hover-layer", node.h as [number, number]);
   } else {
-    emit("hover-node", null);
+    emit("hover-layer", null);
   }
 }
 
 function onNodeLeave() {
-  emit("hover-node", null);
+  emit("hover-layer", null);
 }
 
-// Reset expanded state when tree completely changes
+function onNodeClick(event: MouseEvent, node: any) {
+  if (node.h && Array.isArray(node.h) && node.h.length === 2) {
+    emit("select-layer", node.h as [number, number]);
+  }
+  // If it doesn't have h, or even if it does, clicking the header should also toggle if it has children and we didn't click the expander
+  // Wait, if it has children, maybe clicking the content expands too?
+  // We'll let the user click the expander to expand, and the content to select.
+}
+
+function containsRange(h?: ByteRange, range?: ByteRange | null): boolean {
+  if (!h || !range) return false;
+  return h[0] <= range[0] && h[0] + h[1] >= range[0] + range[1];
+}
+
+function isEqual(h?: ByteRange, range?: ByteRange | null): boolean {
+  if (!h || !range) return false;
+  return h[0] === range[0] && h[1] === range[1];
+}
+
+function isBestMatch(node: any, range: ByteRange | null): boolean {
+  if (!range || !node.h) return false;
+  if (!containsRange(node.h, range)) return false;
+  if (isEqual(node.h, range)) return true;
+
+  if (hasChildren(node)) {
+    for (const child of node.n) {
+      if (containsRange(child.h, range)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function isHovered(node: any) {
+  return isBestMatch(node, props.hoveredByteRange || null);
+}
+
+function isSelected(node: any) {
+  return isBestMatch(node, props.selectedByteRange || null);
+}
+
+// Auto-expand parents if they contain the selected range
+watch(
+  () => props.selectedByteRange,
+  (newRange) => {
+    if (!newRange || !props.tree) return;
+    for (const node of props.tree) {
+      if (
+        hasChildren(node) &&
+        containsRange(node.h, newRange) &&
+        !isEqual(node.h, newRange)
+      ) {
+        expandedNodes.value.add(node);
+      }
+    }
+  },
+  { immediate: true },
+);
+
 watch(
   () => props.tree,
   () => {
@@ -128,6 +202,14 @@ watch(
   background: var(--bg-hover, rgba(255, 255, 255, 0.1));
 }
 
+.layer-header.hovered {
+  background-color: var(--bg-hover, rgba(200, 200, 200, 0.2));
+}
+
+.layer-header.selected {
+  background-color: var(--bg-highlight, rgba(156, 220, 254, 0.4));
+}
+
 .expander {
   display: inline-block;
   width: 16px;
@@ -135,11 +217,16 @@ watch(
   font-size: 0.8em;
   margin-top: 2px;
   user-select: none;
+  cursor: pointer;
 }
 
 .expander-placeholder {
   display: inline-block;
   width: 16px;
+}
+
+.layer-content {
+  flex: 1;
 }
 
 .layer-label {

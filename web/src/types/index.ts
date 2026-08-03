@@ -316,13 +316,18 @@ export interface ColumnLayoutConfig {
 }
 
 /**
+ * Represents a range of bytes in the raw packet [offset, length]
+ */
+export type ByteRange = [number, number];
+
+/**
  * Represents a single protocol tree node in the frame detail.
  */
 export interface FrameLayerNode {
   /** Display label text */
   l: string;
   /** Raw packet byte range [offset, length] */
-  h?: [number, number];
+  h?: ByteRange;
   /** Node type */
   t?: "proto" | "text" | string;
   /** Display filter expression */
