@@ -114,6 +114,15 @@ export interface ConfigPreference {
   choices?: ConfigEnumChoice[];
 }
 
+export interface CompletionItem {
+  value: string;
+  description: string;
+}
+
+export interface CompleteResponse {
+  completions: CompletionItem[];
+}
+
 /**
  * Standard shape for error responses returned from the backend API.
  */
@@ -229,6 +238,17 @@ export interface ApiClient {
     sessionId: string,
     frameId: number,
   ): Promise<FrameDetail>;
+  /**
+   * Fetches autocomplete suggestions for a given prefix.
+   * @param sessionId - The UUID of the session
+   * @param type - The type of completion ('preference' or 'field')
+   * @param prefix - The partial string to complete
+   */
+  getComplete(
+    sessionId: string,
+    type: "preference" | "field",
+    prefix: string,
+  ): Promise<CompleteResponse>;
 }
 
 /* ──────────────────────────────────────────────────────

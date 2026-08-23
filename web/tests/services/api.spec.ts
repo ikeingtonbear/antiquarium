@@ -490,4 +490,56 @@ describe("SharkophagusApi", () => {
       ).rejects.toThrow("Frame not found");
     });
   });
+
+  describe("getComplete", () => {
+    it("sends a GET request to /sessions/{sessionId}/complete with correct query params", async () => {
+      const mockCompleteResponse = {
+        completions: [
+          { value: "tcp.port", description: "TCP Port" },
+          { value: "tcp.options", description: "TCP Options" }
+        ],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockCompleteResponse),
+      });
+
+      const result = await api.getComplete("session-123", "preference", "tcp.po");
+
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        "http://localhost:8080/v1/sessions/session-123/complete?type=preference&prefix=tcp.po",
+      );
+      expect(result).toEqual(mockCompleteResponse);
+    });
+
+    it("throws on network error", async () => {
+      mockFetch.mockRejectedValueOnce(new Error("Network Error"));
+
+      await expect(
+        api.getComplete("session-123", "preference", "tcp"),
+      ).rejects.toThrow(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    });
+
+    it("throws on 404", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: () =>
+          Promise.resolve({
+            code: "NOT_FOUND",
+            message: "Session not found",
+          }),
+      });
+
+      await expect(
+        api.getComplete("session-123", "preference", "tcp"),
+      ).rejects.toThrow("Session not found");
+    });
+  });
 });
