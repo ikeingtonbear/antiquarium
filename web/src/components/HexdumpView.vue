@@ -13,7 +13,7 @@
             :class="{
               hovered: isHovered(row.offset + i),
               selected: isSelected(row.offset + i),
-              'selected-exact': isSelectedExact(row.offset + i)
+              'selected-exact': isSelectedExact(row.offset + i),
             }"
             @mouseenter="$emit('hover-byte', [row.offset + i, 1])"
             @mouseleave="$emit('hover-byte', null)"
@@ -29,7 +29,7 @@
             :class="{
               hovered: isHovered(row.offset + i),
               selected: isSelected(row.offset + i),
-              'selected-exact': isSelectedExact(row.offset + i)
+              'selected-exact': isSelectedExact(row.offset + i),
             }"
             @mouseenter="$emit('hover-byte', [row.offset + i, 1])"
             @mouseleave="$emit('hover-byte', null)"

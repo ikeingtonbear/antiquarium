@@ -101,6 +101,7 @@ describe("FramesTable", () => {
       "session-abc-123",
       0,
       100,
+      "",
     );
 
     const rows = wrapper.findAll(".table-row");
@@ -154,6 +155,7 @@ describe("FramesTable", () => {
       "session-abc-123",
       2,
       100,
+      "",
     );
 
     // Rows count should now be 3

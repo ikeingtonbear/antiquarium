@@ -60,13 +60,21 @@ function containsRange(h?: ByteRange, range?: ByteRange | null): boolean {
   return h[0] <= range[0] && h[0] + h[1] >= range[0] + range[1];
 }
 
-function getDeepestLayerRange(nodes: any[] | undefined, range: ByteRange | null): ByteRange | null {
+function getDeepestLayerRange(
+  nodes: any[] | undefined,
+  range: ByteRange | null,
+): ByteRange | null {
   if (!nodes || !range) return range;
   let bestMatch: ByteRange | null = null;
-  
+
   function dfs(nList: any[]) {
     for (const node of nList) {
-      if (node && typeof node === 'object' && node.h && containsRange(node.h, range)) {
+      if (
+        node &&
+        typeof node === "object" &&
+        node.h &&
+        containsRange(node.h, range)
+      ) {
         bestMatch = node.h;
         if (node.n && Array.isArray(node.n)) {
           dfs(node.n);
@@ -74,14 +82,17 @@ function getDeepestLayerRange(nodes: any[] | undefined, range: ByteRange | null)
       }
     }
   }
-  
+
   dfs(nodes);
   return bestMatch || range;
 }
 
 function onHexHover(range: ByteRange | null) {
   if (range && range[1] === 1) {
-    hoveredByteRange.value = getDeepestLayerRange(frameDetail.value?.tree, range);
+    hoveredByteRange.value = getDeepestLayerRange(
+      frameDetail.value?.tree,
+      range,
+    );
   } else {
     hoveredByteRange.value = range;
   }
@@ -90,7 +101,10 @@ function onHexHover(range: ByteRange | null) {
 function onHexSelect(range: ByteRange | null) {
   if (range && range[1] === 1) {
     selectedSingleByte.value = range[0];
-    selectedByteRange.value = getDeepestLayerRange(frameDetail.value?.tree, range);
+    selectedByteRange.value = getDeepestLayerRange(
+      frameDetail.value?.tree,
+      range,
+    );
   } else {
     selectedSingleByte.value = null;
     selectedByteRange.value = range;

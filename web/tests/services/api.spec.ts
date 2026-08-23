@@ -496,7 +496,7 @@ describe("SharkophagusApi", () => {
       const mockCompleteResponse = {
         completions: [
           { value: "tcp.port", description: "TCP Port" },
-          { value: "tcp.options", description: "TCP Options" }
+          { value: "tcp.options", description: "TCP Options" },
         ],
       };
 
@@ -506,7 +506,11 @@ describe("SharkophagusApi", () => {
         json: () => Promise.resolve(mockCompleteResponse),
       });
 
-      const result = await api.getComplete("session-123", "preference", "tcp.po");
+      const result = await api.getComplete(
+        "session-123",
+        "preference",
+        "tcp.po",
+      );
 
       expect(mockFetch).toHaveBeenCalledOnce();
       const [url] = mockFetch.mock.calls[0];
