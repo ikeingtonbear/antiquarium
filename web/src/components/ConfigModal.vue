@@ -44,7 +44,7 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 watch(searchQuery, (newQuery) => {
   if (debounceTimer) clearTimeout(debounceTimer);
-  
+
   if (!newQuery.trim() || !props.sessionId) {
     autocompleteSuggestions.value = [];
     showAutocomplete.value = false;
@@ -59,11 +59,16 @@ watch(searchQuery, (newQuery) => {
 
   debounceTimer = setTimeout(async () => {
     try {
-      const res = await api.getComplete(props.sessionId!, "preference", newQuery.trim());
+      const res = await api.getComplete(
+        props.sessionId!,
+        "preference",
+        newQuery.trim(),
+      );
       autocompleteSuggestions.value = res.completions || [];
       highlightedIndex.value = -1;
     } catch (err) {
-      autocompleteError.value = err instanceof Error ? err.message : "Failed to load suggestions";
+      autocompleteError.value =
+        err instanceof Error ? err.message : "Failed to load suggestions";
       autocompleteSuggestions.value = [];
     } finally {
       isAutocompleteLoading.value = false;
@@ -85,20 +90,26 @@ function selectSuggestion(suggestion: CompletionItem) {
 
 function navigateDown() {
   if (showAutocomplete.value && autocompleteSuggestions.value.length > 0) {
-    highlightedIndex.value = (highlightedIndex.value + 1) % autocompleteSuggestions.value.length;
+    highlightedIndex.value =
+      (highlightedIndex.value + 1) % autocompleteSuggestions.value.length;
   }
 }
 
 function navigateUp() {
   if (showAutocomplete.value && autocompleteSuggestions.value.length > 0) {
-    highlightedIndex.value = highlightedIndex.value <= 0 
-      ? autocompleteSuggestions.value.length - 1 
-      : highlightedIndex.value - 1;
+    highlightedIndex.value =
+      highlightedIndex.value <= 0
+        ? autocompleteSuggestions.value.length - 1
+        : highlightedIndex.value - 1;
   }
 }
 
 function selectHighlighted() {
-  if (showAutocomplete.value && highlightedIndex.value >= 0 && highlightedIndex.value < autocompleteSuggestions.value.length) {
+  if (
+    showAutocomplete.value &&
+    highlightedIndex.value >= 0 &&
+    highlightedIndex.value < autocompleteSuggestions.value.length
+  ) {
     selectSuggestion(autocompleteSuggestions.value[highlightedIndex.value]);
   }
 }
@@ -436,7 +447,7 @@ function handleOverlayClick(e: MouseEvent) {
         </div>
 
         <!-- Search bar -->
-        <div class="search-bar-container" style="position: relative;">
+        <div class="search-bar-container" style="position: relative">
           <Search :size="16" class="search-icon" />
           <input
             v-model="searchQuery"
@@ -450,14 +461,35 @@ function handleOverlayClick(e: MouseEvent) {
             @keydown.enter.prevent="selectHighlighted"
             @keydown.esc="showAutocomplete = false"
           />
-          <div v-if="showAutocomplete && searchQuery.trim()" class="autocomplete-dropdown">
-             <div v-if="isAutocompleteLoading" class="autocomplete-item loading">Loading...</div>
-             <div v-else-if="autocompleteError" class="autocomplete-item error">{{ autocompleteError }}</div>
-             <div v-else-if="autocompleteSuggestions.length === 0" class="autocomplete-item empty">No matching preferences found.</div>
-             <div v-else v-for="(item, index) in autocompleteSuggestions" :key="item.value" class="autocomplete-item" :class="{ 'highlighted': index === highlightedIndex }" @mousedown.prevent="selectSuggestion(item)">
-                <div class="autocomplete-value">{{ item.value }}</div>
-                <div v-if="item.description" class="autocomplete-desc">{{ item.description }}</div>
-             </div>
+          <div
+            v-if="showAutocomplete && searchQuery.trim()"
+            class="autocomplete-dropdown"
+          >
+            <div v-if="isAutocompleteLoading" class="autocomplete-item loading">
+              Loading...
+            </div>
+            <div v-else-if="autocompleteError" class="autocomplete-item error">
+              {{ autocompleteError }}
+            </div>
+            <div
+              v-else-if="autocompleteSuggestions.length === 0"
+              class="autocomplete-item empty"
+            >
+              No matching preferences found.
+            </div>
+            <div
+              v-else
+              v-for="(item, index) in autocompleteSuggestions"
+              :key="item.value"
+              class="autocomplete-item"
+              :class="{ highlighted: index === highlightedIndex }"
+              @mousedown.prevent="selectSuggestion(item)"
+            >
+              <div class="autocomplete-value">{{ item.value }}</div>
+              <div v-if="item.description" class="autocomplete-desc">
+                {{ item.description }}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1046,8 +1078,6 @@ function handleOverlayClick(e: MouseEvent) {
   transition: all 0.2s ease;
 }
 
-
-
 .autocomplete-dropdown {
   position: absolute;
   top: 100%;
@@ -1057,7 +1087,9 @@ function handleOverlayClick(e: MouseEvent) {
   background: white;
   border: 1px solid #e2e2e2;
   border-radius: 6px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   z-index: 10;
   max-height: 250px;
   overflow-y: auto;
@@ -1076,11 +1108,14 @@ function handleOverlayClick(e: MouseEvent) {
   border-bottom: none;
 }
 
-.autocomplete-item:hover, .autocomplete-item.highlighted {
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
   background-color: #f8fafc;
 }
 
-.autocomplete-item.loading, .autocomplete-item.error, .autocomplete-item.empty {
+.autocomplete-item.loading,
+.autocomplete-item.error,
+.autocomplete-item.empty {
   cursor: default;
   color: #64748b;
   font-style: italic;

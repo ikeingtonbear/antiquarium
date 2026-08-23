@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff,
 } from "@lucide/vue";
+import FilterBar from "./FilterBar.vue";
 import type { Frame, ColumnLayoutConfig, ApiClient } from "../types";
 
 const props = defineProps<{
@@ -38,6 +39,7 @@ const loadingMore = ref<boolean>(false);
 const error = ref<string | null>(null);
 const skip = ref<number>(0);
 const limit = 100; // Chunk size
+const currentFilter = ref<string>("");
 const isDropdownOpen = ref<boolean>(false);
 
 /* Drag & Drop State */
@@ -225,7 +227,12 @@ async function loadInitialFrames() {
   frames.value = [];
 
   try {
-    const data = await api.getSessionFrames(props.sessionId, 0, limit);
+    const data = await api.getSessionFrames(
+      props.sessionId,
+      0,
+      limit,
+      currentFilter.value,
+    );
     frames.value = data;
     skip.value = data.length;
   } catch (err: unknown) {
@@ -242,7 +249,12 @@ async function loadMoreFrames() {
   loadingMore.value = true;
 
   try {
-    const data = await api.getSessionFrames(props.sessionId, skip.value, limit);
+    const data = await api.getSessionFrames(
+      props.sessionId,
+      skip.value,
+      limit,
+      currentFilter.value,
+    );
     if (data.length > 0) {
       frames.value = [...frames.value, ...data];
       skip.value += data.length;
@@ -253,6 +265,11 @@ async function loadMoreFrames() {
   } finally {
     loadingMore.value = false;
   }
+}
+
+function handleApplyFilter(filter: string) {
+  currentFilter.value = filter;
+  loadInitialFrames();
 }
 
 /* Scroll handler detecting bottom offset boundary */
@@ -324,6 +341,11 @@ onMounted(() => {
 
 <template>
   <div class="frames-dashboard card">
+    <FilterBar
+      :sessionId="sessionId"
+      :initialFilter="currentFilter"
+      @apply="handleApplyFilter"
+    />
     <div class="frames-header">
       <h3 class="frames-title">
         <span class="frames-title-icon">🔌</span>

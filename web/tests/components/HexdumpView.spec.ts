@@ -68,16 +68,16 @@ describe("HexdumpView.vue", () => {
       props: {
         bytes: "SGVsbG8gV29ybGQ=", // 11 bytes
         selectedByteRange: [3, 2],
-        selectedSingleByte: 4
+        selectedSingleByte: 4,
       },
     });
 
     const hexBytes = wrapper.findAll(".hex-byte");
-    
+
     // Byte 3 is selected but not exact
     expect(hexBytes[3].classes()).toContain("selected");
     expect(hexBytes[3].classes()).not.toContain("selected-exact");
-    
+
     // Byte 4 is selected AND exact
     expect(hexBytes[4].classes()).toContain("selected");
     expect(hexBytes[4].classes()).toContain("selected-exact");

@@ -449,13 +449,17 @@ describe("ConfigModal", () => {
 
       const searchInput = activeWrapper.find(".search-input");
       await searchInput.setValue("tcp");
-      
+
       // Fast-forward debounce timeout
       vi.advanceTimersByTime(300);
       await vi.dynamicImportSettled();
       await activeWrapper.vm.$nextTick();
 
-      expect(mockApiInstance.getComplete).toHaveBeenCalledWith("active-session", "preference", "tcp");
+      expect(mockApiInstance.getComplete).toHaveBeenCalledWith(
+        "active-session",
+        "preference",
+        "tcp",
+      );
 
       // Verify dropdown appears
       const dropdown = activeWrapper.find(".autocomplete-dropdown");
@@ -471,7 +475,9 @@ describe("ConfigModal", () => {
       await activeWrapper.vm.$nextTick();
 
       // Search input should be updated
-      expect((searchInput.element as HTMLInputElement).value).toBe("tcp.options");
+      expect((searchInput.element as HTMLInputElement).value).toBe(
+        "tcp.options",
+      );
 
       activeWrapper.unmount();
     });
