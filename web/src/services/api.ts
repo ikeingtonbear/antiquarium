@@ -17,6 +17,7 @@ import type {
   ConfigPreference,
   Frame,
   FrameDetail,
+  CompleteResponse,
 } from "../types";
 
 /**
@@ -336,6 +337,37 @@ export class SharkophagusApi implements ApiClient {
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error("Frame not found");
+      }
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Fetches autocomplete suggestions for a given prefix.
+   */
+  async getComplete(
+    sessionId: string,
+    type: "preference" | "field",
+    prefix: string,
+  ): Promise<CompleteResponse> {
+    const url = `${this.baseUrl}/sessions/${sessionId}/complete?type=${type}&prefix=${encodeURIComponent(prefix)}`;
+
+    let response: Response;
+
+    try {
+      response = await fetch(url);
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error("Session not found");
       }
       const error = await this.parseError(response);
       throw new Error(error.message);

@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-[plan.md](specs/013-hex-dump-highlight/plan.md)
+[plan.md](specs/014-preferences-search-autocomplete/plan.md)
 <!-- SPECKIT END -->
 
 ## External Dependencies & API Contracts

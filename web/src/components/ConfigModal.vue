@@ -6,6 +6,7 @@ import type {
   ConfigPreference,
   PreferenceCategory,
   CategoryViewData,
+  CompletionItem,
 } from "../types";
 import { SharkophagusApi } from "../services/api";
 import {
@@ -33,6 +34,74 @@ const successMsg = ref<string | null>(null);
 
 const selectedCategoryId = ref("all");
 const isMobile = ref(false);
+
+const autocompleteSuggestions = ref<CompletionItem[]>([]);
+const isAutocompleteLoading = ref(false);
+const showAutocomplete = ref(false);
+const autocompleteError = ref<string | null>(null);
+const highlightedIndex = ref(-1);
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(searchQuery, (newQuery) => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  
+  if (!newQuery.trim() || !props.sessionId) {
+    autocompleteSuggestions.value = [];
+    showAutocomplete.value = false;
+    autocompleteError.value = null;
+    highlightedIndex.value = -1;
+    return;
+  }
+
+  showAutocomplete.value = true;
+  isAutocompleteLoading.value = true;
+  autocompleteError.value = null;
+
+  debounceTimer = setTimeout(async () => {
+    try {
+      const res = await api.getComplete(props.sessionId!, "preference", newQuery.trim());
+      autocompleteSuggestions.value = res.completions || [];
+      highlightedIndex.value = -1;
+    } catch (err) {
+      autocompleteError.value = err instanceof Error ? err.message : "Failed to load suggestions";
+      autocompleteSuggestions.value = [];
+    } finally {
+      isAutocompleteLoading.value = false;
+    }
+  }, 300);
+});
+
+function handleBlur() {
+  // Delay hiding to allow click events on suggestions to fire
+  setTimeout(() => {
+    showAutocomplete.value = false;
+  }, 150);
+}
+
+function selectSuggestion(suggestion: CompletionItem) {
+  searchQuery.value = suggestion.value;
+  showAutocomplete.value = false;
+}
+
+function navigateDown() {
+  if (showAutocomplete.value && autocompleteSuggestions.value.length > 0) {
+    highlightedIndex.value = (highlightedIndex.value + 1) % autocompleteSuggestions.value.length;
+  }
+}
+
+function navigateUp() {
+  if (showAutocomplete.value && autocompleteSuggestions.value.length > 0) {
+    highlightedIndex.value = highlightedIndex.value <= 0 
+      ? autocompleteSuggestions.value.length - 1 
+      : highlightedIndex.value - 1;
+  }
+}
+
+function selectHighlighted() {
+  if (showAutocomplete.value && highlightedIndex.value >= 0 && highlightedIndex.value < autocompleteSuggestions.value.length) {
+    selectSuggestion(autocompleteSuggestions.value[highlightedIndex.value]);
+  }
+}
 
 /** Tracks collapse/expand state per group ID across the session */
 const collapsedGroups = ref<Record<string, boolean>>({});
@@ -367,14 +436,29 @@ function handleOverlayClick(e: MouseEvent) {
         </div>
 
         <!-- Search bar -->
-        <div class="search-bar-container">
+        <div class="search-bar-container" style="position: relative;">
           <Search :size="16" class="search-icon" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Search preferences..."
             class="search-input"
+            @focus="searchQuery.trim() && (showAutocomplete = true)"
+            @blur="handleBlur"
+            @keydown.down.prevent="navigateDown"
+            @keydown.up.prevent="navigateUp"
+            @keydown.enter.prevent="selectHighlighted"
+            @keydown.esc="showAutocomplete = false"
           />
+          <div v-if="showAutocomplete && searchQuery.trim()" class="autocomplete-dropdown">
+             <div v-if="isAutocompleteLoading" class="autocomplete-item loading">Loading...</div>
+             <div v-else-if="autocompleteError" class="autocomplete-item error">{{ autocompleteError }}</div>
+             <div v-else-if="autocompleteSuggestions.length === 0" class="autocomplete-item empty">No matching preferences found.</div>
+             <div v-else v-for="(item, index) in autocompleteSuggestions" :key="item.value" class="autocomplete-item" :class="{ 'highlighted': index === highlightedIndex }" @mousedown.prevent="selectSuggestion(item)">
+                <div class="autocomplete-value">{{ item.value }}</div>
+                <div v-if="item.description" class="autocomplete-desc">{{ item.description }}</div>
+             </div>
+          </div>
         </div>
 
         <!-- Body -->
@@ -960,6 +1044,62 @@ function handleOverlayClick(e: MouseEvent) {
   color: #f8fafc;
   font-size: 0.875rem;
   transition: all 0.2s ease;
+}
+
+
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #e2e2e2;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover, .autocomplete-item.highlighted {
+  background-color: #f8fafc;
+}
+
+.autocomplete-item.loading, .autocomplete-item.error, .autocomplete-item.empty {
+  cursor: default;
+  color: #64748b;
+  font-style: italic;
+}
+
+.autocomplete-item.error {
+  color: #ef4444;
+}
+
+.autocomplete-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.autocomplete-desc {
+  font-size: 0.75rem;
+  color: #64748b;
 }
 
 .search-input:focus {

@@ -31,6 +31,7 @@ vi.mock("@/services/api", () => {
           .fn()
           .mockImplementation(() => Promise.resolve(getMockConfig())),
         updateSessionConfig: vi.fn().mockResolvedValue(undefined),
+        getComplete: vi.fn().mockResolvedValue({ completions: [] }),
       };
     }),
   };
@@ -411,5 +412,68 @@ describe("ConfigModal", () => {
     expect(displayedItems[0].text()).toContain("check_checksum");
 
     mobileWrapper.unmount();
+  });
+
+  describe("Preferences Autocomplete", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("fetches autocomplete suggestions when typing and displays them", async () => {
+      // Need an active session to query completion
+      const activeWrapper = mount(ConfigModal, {
+        props: {
+          isOpen: true,
+          sessionId: "active-session",
+        },
+        global: {
+          provide: {
+            api: mockApiInstance,
+          },
+        },
+      });
+
+      await vi.dynamicImportSettled();
+      await activeWrapper.vm.$nextTick();
+
+      mockApiInstance.getComplete.mockResolvedValueOnce({
+        completions: [
+          { value: "tcp.options", description: "TCP Options" },
+          { value: "tcp.port", description: "TCP Port" },
+        ],
+      });
+
+      const searchInput = activeWrapper.find(".search-input");
+      await searchInput.setValue("tcp");
+      
+      // Fast-forward debounce timeout
+      vi.advanceTimersByTime(300);
+      await vi.dynamicImportSettled();
+      await activeWrapper.vm.$nextTick();
+
+      expect(mockApiInstance.getComplete).toHaveBeenCalledWith("active-session", "preference", "tcp");
+
+      // Verify dropdown appears
+      const dropdown = activeWrapper.find(".autocomplete-dropdown");
+      expect(dropdown.exists()).toBe(true);
+
+      const items = dropdown.findAll(".autocomplete-item");
+      expect(items.length).toBe(2);
+      expect(items[0].text()).toContain("tcp.options");
+      expect(items[0].text()).toContain("TCP Options");
+
+      // Click first item
+      await items[0].trigger("mousedown");
+      await activeWrapper.vm.$nextTick();
+
+      // Search input should be updated
+      expect((searchInput.element as HTMLInputElement).value).toBe("tcp.options");
+
+      activeWrapper.unmount();
+    });
   });
 });
