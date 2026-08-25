@@ -20,6 +20,17 @@ import type {
   CompleteResponse,
 } from "../types";
 
+export interface CheckRequest {
+  type: "filter" | "field";
+  expression: string;
+}
+
+export interface CheckResponse {
+  valid: boolean;
+  errorCode?: number;
+  errorMessage?: string;
+}
+
 /**
  * Concrete implementation of the ApiClient interface using the Fetch API.
  *
@@ -359,6 +370,43 @@ export class SharkophagusApi implements ApiClient {
 
     try {
       response = await fetch(url);
+    } catch {
+      throw new Error(
+        "API server is unreachable. Please verify backend connection.",
+      );
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error("Session not found");
+      }
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Validates a filter or field expression.
+   */
+  async check(
+    sessionId: string,
+    type: "filter" | "field",
+    expression: string,
+  ): Promise<CheckResponse> {
+    const url = `${this.baseUrl}/sessions/${sessionId}/check`;
+
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type, expression }),
+      });
     } catch {
       throw new Error(
         "API server is unreachable. Please verify backend connection.",

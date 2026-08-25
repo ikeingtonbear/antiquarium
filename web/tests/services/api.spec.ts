@@ -546,4 +546,47 @@ describe("SharkophagusApi", () => {
       ).rejects.toThrow("Session not found");
     });
   });
+
+  describe("check", () => {
+    it("should call the API check endpoint and return CheckResponse", async () => {
+      const mockResponse = { valid: true };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await api.check(
+        "test-session",
+        "filter",
+        "tcp.port == 80",
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8080/v1/sessions/test-session/check",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "filter",
+            expression: "tcp.port == 80",
+          }),
+        },
+      );
+      expect(result).toEqual(mockResponse);
+    });
+
+    it("should handle error cases for the check endpoint", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ code: 2, message: "Syntax error" }),
+      });
+
+      await expect(
+        api.check("test-session", "filter", "invalid"),
+      ).rejects.toThrow("Syntax error");
+    });
+  });
 });

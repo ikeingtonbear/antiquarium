@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
-import { Search, AlertCircle, Check } from "@lucide/vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { Search, AlertCircle, Check, X } from "@lucide/vue";
 import { SharkophagusApi } from "../services/api";
 import type { CompletionItem } from "../types";
 
@@ -19,7 +19,12 @@ const suggestions = ref<CompletionItem[]>([]);
 const showSuggestions = ref(false);
 const activeIndex = ref(-1);
 const isDebouncing = ref(false);
+const isValidating = ref(false);
 const validationError = ref<string | null>(null);
+
+const isValid = computed(() => {
+  return validationError.value === null && !isValidating.value;
+});
 
 const inputRef = ref<HTMLInputElement | null>(null);
 
@@ -53,9 +58,33 @@ const onInput = (event: Event) => {
 
   clearTimeout(debounceTimeout);
   isDebouncing.value = true;
+  isValidating.value = true;
 
-  debounceTimeout = setTimeout(() => {
+  debounceTimeout = setTimeout(async () => {
     isDebouncing.value = false;
+
+    // Check validation if string is not empty
+    if (value.trim()) {
+      try {
+        const checkRes = await api.check(
+          props.sessionId,
+          "filter",
+          value.trim(),
+        );
+        if (!checkRes.valid) {
+          validationError.value =
+            checkRes.errorMessage || "Invalid filter syntax";
+        } else {
+          validationError.value = null;
+        }
+      } catch (e) {
+        validationError.value = "Validation failed";
+      }
+    } else {
+      validationError.value = null;
+    }
+    isValidating.value = false;
+
     const tokens = value.split(/[\s()]+/);
     const lastToken = tokens[tokens.length - 1];
 
@@ -64,7 +93,7 @@ const onInput = (event: Event) => {
     } else {
       showSuggestions.value = false;
     }
-  }, 300);
+  }, 500);
 };
 
 // Select a suggestion
@@ -87,6 +116,28 @@ const selectSuggestion = (index: number) => {
 
     showSuggestions.value = false;
     validationError.value = null;
+
+    // Trigger validation since we updated the input
+    clearTimeout(debounceTimeout);
+    isValidating.value = true;
+    debounceTimeout = setTimeout(async () => {
+      try {
+        const checkRes = await api.check(
+          props.sessionId,
+          "filter",
+          filterText.value.trim(),
+        );
+        if (!checkRes.valid) {
+          validationError.value =
+            checkRes.errorMessage || "Invalid filter syntax";
+        } else {
+          validationError.value = null;
+        }
+      } catch (e) {
+        validationError.value = "Validation failed";
+      }
+      isValidating.value = false;
+    }, 500);
 
     // Focus back on input
     nextTick(() => {
@@ -130,24 +181,25 @@ const onKeyDown = (e: KeyboardEvent) => {
 
 // Apply filter logic
 const applyFilter = () => {
+  if (!isValid.value) return;
   showSuggestions.value = false;
-  // Validation stub: in future, we'll call backend. For now, check if empty or valid string length.
-  // Actually, empty is valid (clears filter). Let's just emit unless we have a clear syntax error.
-  // For the sake of the requirement: "stub check"
-  // If user types 'ERROR', simulate error for testing edge cases
-  if (filterText.value === "ERROR") {
-    validationError.value = "Invalid filter syntax";
-    return;
-  }
-
-  validationError.value = null;
   emit("apply", filterText.value);
+};
+
+// Clear filter logic
+const clearFilter = () => {
+  filterText.value = "";
+  validationError.value = null;
+  isValidating.value = false;
+  showSuggestions.value = false;
+  clearTimeout(debounceTimeout);
+  emit("apply", "");
 };
 
 // Close dropdown when clicking outside
 const handleClickOutside = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
-  if (!target.closest(".filter-bar-container")) {
+  if (!target.closest(".filter-bar-wrapper")) {
     showSuggestions.value = false;
   }
 };
@@ -163,62 +215,85 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="filter-bar-container">
-    <div class="filter-input-wrapper">
-      <Search class="search-icon" :size="18" />
-      <input
-        ref="inputRef"
-        type="text"
-        :value="filterText"
-        @input="onInput"
-        @keydown="onKeyDown"
-        class="filter-input"
-        :class="{ 'has-error': validationError }"
-        placeholder="Enter a display filter..."
-        autocomplete="off"
-      />
+  <div class="filter-bar-wrapper">
+    <div class="filter-bar-container">
+      <div class="filter-input-wrapper">
+        <Search class="search-icon" :size="18" />
+        <input
+          ref="inputRef"
+          type="text"
+          :value="filterText"
+          @input="onInput"
+          @keydown="onKeyDown"
+          class="filter-input"
+          :class="{ 'has-error': validationError }"
+          placeholder="Enter a display filter..."
+          autocomplete="off"
+        />
 
-      <!-- Error Icon and Tooltip -->
-      <div
-        v-if="validationError"
-        class="error-container"
-        :title="validationError"
-      >
-        <AlertCircle class="error-icon" :size="18" />
+        <!-- Action Icons (Clear / Error) -->
+        <div class="input-actions">
+          <div
+            v-if="validationError"
+            class="error-icon-wrapper"
+            :title="validationError"
+          >
+            <AlertCircle class="error-icon" :size="18" />
+          </div>
+          <div
+            v-if="filterText"
+            class="clear-icon-wrapper"
+            @click="clearFilter"
+            title="Clear filter"
+          >
+            <X class="clear-icon" :size="16" />
+          </div>
+        </div>
+
+        <!-- Autocomplete Dropdown -->
+        <ul v-if="showSuggestions" class="suggestions-dropdown">
+          <li
+            v-for="(suggestion, index) in suggestions"
+            :key="index"
+            :class="['suggestion-item', { active: index === activeIndex }]"
+            @click="selectSuggestion(index)"
+            @mouseover="activeIndex = index"
+          >
+            <span class="suggestion-value">{{ suggestion.value }}</span>
+            <span v-if="suggestion.description" class="suggestion-desc">{{
+              suggestion.description
+            }}</span>
+          </li>
+        </ul>
       </div>
 
-      <!-- Autocomplete Dropdown -->
-      <ul v-if="showSuggestions" class="suggestions-dropdown">
-        <li
-          v-for="(suggestion, index) in suggestions"
-          :key="index"
-          :class="['suggestion-item', { active: index === activeIndex }]"
-          @click="selectSuggestion(index)"
-          @mouseover="activeIndex = index"
-        >
-          <span class="suggestion-value">{{ suggestion.value }}</span>
-          <span v-if="suggestion.description" class="suggestion-desc">{{
-            suggestion.description
-          }}</span>
-        </li>
-      </ul>
+      <!-- Apply Button -->
+      <button class="apply-btn" @click="applyFilter" :disabled="!isValid">
+        <Check :size="16" style="margin-right: 4px" />
+        Apply
+      </button>
     </div>
 
-    <!-- Apply Button -->
-    <button class="apply-btn" @click="applyFilter">
-      <Check :size="16" style="margin-right: 4px" />
-      Apply
-    </button>
+    <!-- Prominent Error Message -->
+    <div v-if="validationError" class="validation-message-prominent">
+      {{ validationError }}
+    </div>
   </div>
 </template>
 
 <style scoped>
+.filter-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
 .filter-bar-container {
   display: flex;
   align-items: stretch;
   position: relative;
   width: 100%;
-  margin-bottom: 1rem;
   gap: 8px;
 }
 
@@ -237,7 +312,7 @@ onUnmounted(() => {
 
 .filter-input {
   width: 100%;
-  padding: 0.6rem 2.5rem 0.6rem 2.2rem;
+  padding: 0.6rem 4rem 0.6rem 2.2rem;
   font-family: monospace;
   font-size: 14px;
   border: 1px solid var(--color-border-glass);
@@ -264,13 +339,39 @@ onUnmounted(() => {
   box-shadow: 0 0 0 2px var(--color-danger-glow);
 }
 
-.error-container {
+.input-actions {
   position: absolute;
   right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.error-icon-wrapper {
   color: var(--color-danger);
   display: flex;
   align-items: center;
   cursor: help;
+}
+
+.clear-icon-wrapper {
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.clear-icon-wrapper:hover {
+  color: var(--color-text-primary);
+}
+
+.validation-message-prominent {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin-top: 6px;
+  margin-left: 2px;
+  font-weight: 500;
 }
 
 .suggestions-dropdown {
@@ -339,8 +440,13 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.apply-btn:hover {
+.apply-btn:hover:not(:disabled) {
   background-color: var(--color-accent);
   color: var(--color-bg);
+}
+
+.apply-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
