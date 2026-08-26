@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { Search, AlertCircle, Check, X } from "@lucide/vue";
 import { SharkophagusApi } from "../services/api";
 import type { CompletionItem } from "../types";
@@ -21,6 +21,12 @@ const activeIndex = ref(-1);
 const isDebouncing = ref(false);
 const isValidating = ref(false);
 const validationError = ref<string | null>(null);
+
+watch(() => props.initialFilter, (newVal) => {
+  if (newVal !== undefined && newVal !== filterText.value) {
+    filterText.value = newVal;
+  }
+});
 
 const isValid = computed(() => {
   return validationError.value === null && !isValidating.value;

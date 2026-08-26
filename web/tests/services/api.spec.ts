@@ -589,4 +589,31 @@ describe("SharkophagusApi", () => {
       ).rejects.toThrow("Syntax error");
     });
   });
+
+  describe("followStream", () => {
+    it("should call the follow endpoint and return stream response", async () => {
+      const mockResponse = {
+        shost: "192.168.1.1",
+        sport: "80",
+        sbytes: 100,
+        chost: "192.168.1.2",
+        cport: "12345",
+        cbytes: 50,
+        payloads: [{ n: 10, d: "dGVzdA==", s: 0 }],
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await api.followStream("test-session", "TCP", "tcp.stream eq 0");
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:8080/v1/sessions/test-session/follow?follow=TCP&filter=tcp.stream+eq+0",
+        { method: "GET", headers: { Accept: "application/json" } },
+      );
+      expect(result).toEqual(mockResponse);
+    });
+  });
 });

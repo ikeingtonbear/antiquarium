@@ -18,6 +18,7 @@ import type {
   Frame,
   FrameDetail,
   CompleteResponse,
+  FollowResponse,
 } from "../types";
 
 export interface CheckRequest {
@@ -422,6 +423,34 @@ export class SharkophagusApi implements ApiClient {
     }
 
     return response.json();
+  }
+
+  /**
+   * Follows a stream and retrieves its data payloads.
+   */
+  async followStream(
+    sessionId: string,
+    protocol: string,
+    filter: string
+  ): Promise<FollowResponse> {
+    const params = new URLSearchParams({
+      follow: protocol,
+      filter: filter,
+    });
+    const url = `${this.baseUrl}/sessions/${sessionId}/follow?${params.toString()}`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+
+    return await response.json();
   }
 
   /**
