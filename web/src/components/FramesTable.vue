@@ -272,6 +272,8 @@ function handleApplyFilter(filter: string) {
   loadInitialFrames();
 }
 
+defineExpose({ applyFilter: handleApplyFilter });
+
 /* Scroll handler detecting bottom offset boundary */
 function onScroll(e: Event) {
   const container = e.target as HTMLElement;

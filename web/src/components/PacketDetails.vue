@@ -9,7 +9,19 @@
     </div>
     <div v-else class="split-pane">
       <div class="pane pane-left">
-        <h3 class="pane-header">Protocol Hierarchy</h3>
+        <div class="pane-header-container">
+          <h3 class="pane-header">Protocol Hierarchy</h3>
+          <div class="followers-actions" v-if="frameDetail?.followers && frameDetail.followers.length > 0">
+            <button 
+              v-for="follower in frameDetail.followers" 
+              :key="follower.filter"
+              @click="$emit('follow-stream', follower.protocol, follower.filter)"
+              class="follower-btn"
+            >
+              Follow {{ follower.protocol }} Stream
+            </button>
+          </div>
+        </div>
         <div class="pane-content">
           <LayerView
             :tree="frameDetail?.tree"
@@ -44,6 +56,10 @@ import HexdumpView from "./HexdumpView.vue";
 const props = defineProps<{
   sessionId: string;
   frameId: number | null;
+}>();
+
+const emit = defineEmits<{
+  (e: 'follow-stream', protocol: string, filter: string): void;
 }>();
 
 const frameDetail = ref<FrameDetail | null>(null);
@@ -194,14 +210,41 @@ watch(
   border-left: 1px solid var(--border-color, #333);
 }
 
+.pane-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-surface-header, #252526);
+  border-bottom: 1px solid var(--border-color, #333);
+  padding-right: 12px;
+}
+
 .pane-header {
   margin: 0;
   padding: 8px 12px;
   font-size: 0.9em;
   font-weight: 600;
-  background: var(--bg-surface-header, #252526);
-  border-bottom: 1px solid var(--border-color, #333);
   color: var(--text-primary, #e0e0e0);
+  border-bottom: none;
+}
+
+.followers-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.follower-btn {
+  background: #007acc;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+.follower-btn:hover {
+  background: #005f9e;
 }
 
 .pane-content {

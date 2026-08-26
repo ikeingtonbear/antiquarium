@@ -27,6 +27,7 @@ import SettingsMenu from "./components/SettingsMenu.vue";
 import ConfigModal from "./components/ConfigModal.vue";
 import FramesTable from "./components/FramesTable.vue";
 import PacketDetails from "./components/PacketDetails.vue";
+import FollowStreamModal from "./components/FollowStreamModal.vue";
 import { SharkophagusApi } from "./services/api";
 
 /* ── Reactive State ── */
@@ -39,6 +40,10 @@ const errorMessage = ref<string | null>(null);
 const isTransitioning = ref<boolean>(false);
 const isAnalysisModalOpen = ref<boolean>(false);
 const selectedFrameId = ref<number | null>(null);
+
+/* ── Follow Stream State ── */
+const followStreamData = ref<{ protocol: string; filter: string } | null>(null);
+const framesTableRef = ref<any>(null);
 
 /* ── System Info State ── */
 const systemInfo = ref<SystemInfo | null>(null);
@@ -162,6 +167,13 @@ async function resetToIdle() {
 }
 
 /* ── Error Dismiss ── */
+function handleFollowStream(protocol: string, filter: string) {
+  followStreamData.value = { protocol, filter };
+  if (framesTableRef.value) {
+    framesTableRef.value.applyFilter(filter);
+  }
+}
+
 function handleDismissError() {
   errorMessage.value = null;
 }
@@ -265,6 +277,7 @@ function handleOpenInfo() {
         />
 
         <FramesTable
+          ref="framesTableRef"
           v-if="session && statistics"
           :session-id="session.id"
           :columns="
@@ -292,6 +305,15 @@ function handleOpenInfo() {
           v-if="session && statistics"
           :session-id="session.id"
           :frame-id="selectedFrameId"
+          @follow-stream="handleFollowStream"
+        />
+
+        <FollowStreamModal
+          v-if="followStreamData && session"
+          :session-id="session.id"
+          :protocol="followStreamData.protocol"
+          :filter="followStreamData.filter"
+          @close="followStreamData = null"
         />
 
         <AnalysisModal

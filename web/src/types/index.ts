@@ -373,7 +373,39 @@ export interface FrameDetail {
   /** Follow streams information */
   fol?: string[][];
   /** Detailed follow stream objects list */
-  followers?: any[];
+  followers?: Follower[];
   /** Base64 encoded or raw string representing the packet's raw bytes (to be rendered as hexdump) */
   bytes?: string;
+}
+
+/**
+ * Represents an available stream for a packet.
+ */
+export interface Follower {
+  protocol: string;
+  filter: string;
+  stream: number;
+}
+
+/**
+ * Represents a chunk of data in the stream payload.
+ */
+export interface FollowPayload {
+  n: number;
+  d: string; // Base64 encoded payload
+  s: number; // Direction: 0 = Client to Service, 1 = Service to Client
+}
+
+/**
+ * Represents the response from the follow stream endpoint.
+ */
+export interface FollowResponse {
+  err?: number;
+  shost: string;
+  sport: string;
+  sbytes: number;
+  chost: string;
+  cport: string;
+  cbytes: number;
+  payloads: FollowPayload[];
 }
