@@ -13,8 +13,18 @@
         <div v-else-if="error" class="error">{{ error }}</div>
         <div v-else-if="streamData" class="stream-container">
           <div class="stream-meta">
-            <span><strong>Client:</strong> {{ streamData.chost }}:{{ streamData.cport }} ({{ streamData.cbytes }} bytes)</span>
-            <span><strong>Server:</strong> {{ streamData.shost }}:{{ streamData.sport }} ({{ streamData.sbytes }} bytes)</span>
+            <span
+              ><strong>Client:</strong> {{ streamData.chost }}:{{
+                streamData.cport
+              }}
+              ({{ streamData.cbytes }} bytes)</span
+            >
+            <span
+              ><strong>Server:</strong> {{ streamData.shost }}:{{
+                streamData.sport
+              }}
+              ({{ streamData.sbytes }} bytes)</span
+            >
           </div>
           <div class="payloads">
             <template v-for="(payload, idx) in streamData.payloads" :key="idx">
@@ -33,10 +43,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { X } from '@lucide/vue';
-import type { FollowResponse } from '../types';
-import { SharkophagusApi } from '../services/api';
+import { ref, onMounted } from "vue";
+import { X } from "@lucide/vue";
+import type { FollowResponse } from "../types";
+import { SharkophagusApi } from "../services/api";
 
 const props = defineProps<{
   sessionId: string;
@@ -45,7 +55,7 @@ const props = defineProps<{
 }>();
 
 defineEmits<{
-  (e: 'close'): void;
+  (e: "close"): void;
 }>();
 
 const loading = ref(true);
@@ -65,9 +75,13 @@ onMounted(async () => {
   error.value = null;
   try {
     const api = new SharkophagusApi();
-    streamData.value = await api.followStream(props.sessionId, props.protocol, props.filter);
+    streamData.value = await api.followStream(
+      props.sessionId,
+      props.protocol,
+      props.filter,
+    );
   } catch (err: any) {
-    error.value = err.message || 'Failed to follow stream';
+    error.value = err.message || "Failed to follow stream";
   } finally {
     loading.value = false;
   }
@@ -132,7 +146,8 @@ onMounted(async () => {
   flex: 1;
 }
 
-.loading, .error {
+.loading,
+.error {
   padding: 20px;
   text-align: center;
 }

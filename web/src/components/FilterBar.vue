@@ -22,11 +22,14 @@ const isDebouncing = ref(false);
 const isValidating = ref(false);
 const validationError = ref<string | null>(null);
 
-watch(() => props.initialFilter, (newVal) => {
-  if (newVal !== undefined && newVal !== filterText.value) {
-    filterText.value = newVal;
-  }
-});
+watch(
+  () => props.initialFilter,
+  (newVal) => {
+    if (newVal !== undefined && newVal !== filterText.value) {
+      filterText.value = newVal;
+    }
+  },
+);
 
 const isValid = computed(() => {
   return validationError.value === null && !isValidating.value;

@@ -131,9 +131,10 @@ describe("StatsDashboard", () => {
       });
 
       const buttons = wrapper.findAll("button");
-      expect(buttons.length).toBe(2);
+      expect(buttons.length).toBe(3);
       expect(buttons[0].text()).toContain("End Session");
-      expect(buttons[1].text()).toContain("View Analysis Details");
+      expect(buttons[1].text()).toContain("Add Tap");
+      expect(buttons[2].text()).toContain("View Analysis Details");
     });
 
     it('emits "end-session" when End Session button clicked', async () => {
@@ -163,7 +164,7 @@ describe("StatsDashboard", () => {
         },
       });
 
-      const btn = wrapper.findAll("button")[1];
+      const btn = wrapper.findAll("button")[2];
       await btn.trigger("click");
 
       expect(wrapper.emitted("show-details")).toBeTruthy();

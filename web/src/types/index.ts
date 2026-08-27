@@ -409,3 +409,13 @@ export interface FollowResponse {
   cbytes: number;
   payloads: FollowPayload[];
 }
+
+/**
+ * Represents a tap applied to a session in the UI state.
+ */
+export interface ActiveTap {
+  id: string;
+  tapString: string;
+  name: string;
+  results?: any;
+}
