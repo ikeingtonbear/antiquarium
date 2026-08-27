@@ -431,7 +431,7 @@ export class SharkophagusApi implements ApiClient {
   async followStream(
     sessionId: string,
     protocol: string,
-    filter: string
+    filter: string,
   ): Promise<FollowResponse> {
     const params = new URLSearchParams({
       follow: protocol,
@@ -451,6 +451,42 @@ export class SharkophagusApi implements ApiClient {
     }
 
     return await response.json();
+  }
+
+  /**
+   * Applies one or more taps to the session.
+   */
+  async applyTap(
+    sessionId: string,
+    taps: Record<string, string>,
+  ): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/tap`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ taps }),
+    });
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(error.message);
+    }
+  }
+
+  /**
+   * Fetches available taps by retrieving system info and flattening the tap arrays.
+   */
+  async getAvailableTaps(): Promise<{ name: string; tap: string }[]> {
+    const info = await this.getSystemInfo();
+    return [
+      ...(info.stats || []),
+      ...(info.taps || []),
+      ...(info.eo || []),
+      ...(info.srt || []),
+      ...(info.rtd || []),
+      ...(info.follow || []),
+    ];
   }
 
   /**

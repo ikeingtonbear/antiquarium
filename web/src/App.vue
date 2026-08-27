@@ -9,13 +9,14 @@
  * @see data-model.md §2 — Client-Side Lifecycle & State Machine
  */
 
-import { ref, onMounted, onUnmounted, watch, provide } from "vue";
+import { ref, onMounted, onUnmounted, watch, provide, computed } from "vue";
 import type {
   AppState,
   CaptureSession,
   CaptureStatistics,
   CaptureAnalysis,
   SystemInfo,
+  ActiveTap,
 } from "./types";
 import FileUpload from "./components/FileUpload.vue";
 import AnalysisModal from "./components/AnalysisModal.vue";
@@ -28,6 +29,8 @@ import ConfigModal from "./components/ConfigModal.vue";
 import FramesTable from "./components/FramesTable.vue";
 import PacketDetails from "./components/PacketDetails.vue";
 import FollowStreamModal from "./components/FollowStreamModal.vue";
+import AddTapModal from "./components/AddTapModal.vue";
+import AnalyticsDashboard from "./components/AnalyticsDashboard.vue";
 import { SharkophagusApi } from "./services/api";
 
 /* ── Reactive State ── */
@@ -52,6 +55,20 @@ const isInfoLoading = ref<boolean>(false);
 const infoError = ref<string | null>(null);
 const isInfoModalOpen = ref<boolean>(false);
 const isPreferencesOpen = ref<boolean>(false);
+const isAddTapModalOpen = ref<boolean>(false);
+const activeTaps = ref<ActiveTap[]>([]);
+
+const availableTaps = computed(() => {
+  if (!systemInfo.value) return [];
+  return [
+    ...systemInfo.value.stats,
+    ...systemInfo.value.taps,
+    ...systemInfo.value.eo,
+    ...systemInfo.value.srt,
+    ...systemInfo.value.rtd,
+    ...systemInfo.value.follow,
+  ];
+});
 
 /* ── API Client ── */
 const api = new SharkophagusApi();
@@ -178,9 +195,34 @@ function handleDismissError() {
   errorMessage.value = null;
 }
 
-/* ── Capabilities Modal Actions ── */
 function handleOpenInfo() {
   isInfoModalOpen.value = true;
+}
+
+async function handleApplyTap(tapString: string) {
+  if (!session.value) return;
+  
+  isAddTapModalOpen.value = false;
+
+  try {
+    const tapId = "tap_" + Date.now();
+    await api.applyTap(session.value.id, { tap0: tapString });
+
+    const tapName =
+      availableTaps.value.find((t) => t.tap === tapString)?.name || tapString;
+    activeTaps.value.push({
+      id: tapId,
+      tapString,
+      name: tapName,
+      results: {
+        status: "Tap applied successfully",
+        mockData: "Waiting for stats...",
+      },
+    });
+  } catch (err: unknown) {
+    errorMessage.value =
+      err instanceof Error ? err.message : "Failed to apply tap";
+  }
 }
 </script>
 
@@ -274,6 +316,12 @@ function handleOpenInfo() {
           :is-deleting="appState === 'deleting'"
           @end-session="handleAcknowledge"
           @show-details="isAnalysisModalOpen = true"
+          @add-tap="isAddTapModalOpen = true"
+        />
+
+        <AnalyticsDashboard
+          v-if="session && statistics"
+          :active-taps="activeTaps"
         />
 
         <FramesTable
@@ -353,6 +401,14 @@ function handleOpenInfo() {
       :is-open="isPreferencesOpen"
       :session-id="session?.id || null"
       @close="isPreferencesOpen = false"
+    />
+
+    <!-- Add Tap Modal -->
+    <AddTapModal
+      :is-open="isAddTapModalOpen"
+      :available-taps="availableTaps"
+      @close="isAddTapModalOpen = false"
+      @apply="handleApplyTap"
     />
   </main>
 </template>

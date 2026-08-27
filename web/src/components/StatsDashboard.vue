@@ -22,6 +22,7 @@ const emit = defineEmits<{
   (e: "end-session"): void;
   (e: "show-details"): void;
   (e: "acknowledge"): void;
+  (e: "add-tap"): void;
 }>();
 
 /* ── Formatters ── */
@@ -116,6 +117,14 @@ const cards = computed(() => [
         <span v-if="isDeleting" class="btn-spinner" aria-hidden="true"></span>
         <span v-if="isDeleting">Closing...</span>
         <span v-else>End Session</span>
+      </button>
+
+      <button
+        class="btn-view-details"
+        :disabled="isDeleting"
+        @click="$emit('add-tap')"
+      >
+        Add Tap
       </button>
 
       <button

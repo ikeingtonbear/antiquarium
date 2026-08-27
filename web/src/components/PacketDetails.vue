@@ -11,11 +11,16 @@
       <div class="pane pane-left">
         <div class="pane-header-container">
           <h3 class="pane-header">Protocol Hierarchy</h3>
-          <div class="followers-actions" v-if="frameDetail?.followers && frameDetail.followers.length > 0">
-            <button 
-              v-for="follower in frameDetail.followers" 
+          <div
+            class="followers-actions"
+            v-if="frameDetail?.followers && frameDetail.followers.length > 0"
+          >
+            <button
+              v-for="follower in frameDetail.followers"
               :key="follower.filter"
-              @click="$emit('follow-stream', follower.protocol, follower.filter)"
+              @click="
+                $emit('follow-stream', follower.protocol, follower.filter)
+              "
               class="follower-btn"
             >
               Follow {{ follower.protocol }} Stream
@@ -59,7 +64,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'follow-stream', protocol: string, filter: string): void;
+  (e: "follow-stream", protocol: string, filter: string): void;
 }>();
 
 const frameDetail = ref<FrameDetail | null>(null);
