@@ -459,7 +459,7 @@ export class SharkophagusApi implements ApiClient {
   async applyTap(
     sessionId: string,
     taps: Record<string, string>,
-  ): Promise<void> {
+  ): Promise<any> {
     const response = await fetch(`${this.baseUrl}/sessions/${sessionId}/tap`, {
       method: "POST",
       headers: {
@@ -472,6 +472,8 @@ export class SharkophagusApi implements ApiClient {
       const error = await this.parseError(response);
       throw new Error(error.message);
     }
+
+    return response.json();
   }
 
   /**

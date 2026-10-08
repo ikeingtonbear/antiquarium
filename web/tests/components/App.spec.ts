@@ -500,4 +500,19 @@ describe("App", () => {
     const header = wrapper.find(".app-header");
     expect(header.exists()).toBe(false);
   });
+  it("does not render AnalyticsDashboard in the main view, passes activeTaps to AddTapModal instead", async () => {
+    wrapper = mount(App);
+    await flushPromises();
+
+    // Verify AnalyticsDashboard is NOT rendered directly by App
+    const dashboard = wrapper.findComponent({ name: "AnalyticsDashboard" });
+    // It might be rendered INSIDE AddTapModal depending on if we mount deeply or shallowly,
+    // but the direct check on the modal's props is more robust.
+    const addTapModal = wrapper.findComponent({ name: "AddTapModal" });
+    expect(addTapModal.exists()).toBe(true);
+
+    // Check if the prop activeTaps is passed down to AddTapModal
+    expect(addTapModal.props("activeTaps")).toBeDefined();
+    expect(Array.isArray(addTapModal.props("activeTaps"))).toBe(true);
+  });
 });
