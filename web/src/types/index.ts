@@ -204,6 +204,11 @@ export interface ApiClient {
   ): Promise<ConfigPreference[]>;
 
   /**
+   * Applies one or more taps to the session.
+   */
+  applyTap(sessionId: string, taps: Record<string, string>): Promise<any>;
+
+  /**
    * Updates a configuration preference for the active session.
    * @param sessionId - The active capture session UUID
    * @param name - The configuration preference name

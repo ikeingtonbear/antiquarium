@@ -61,12 +61,15 @@ const activeTaps = ref<ActiveTap[]>([]);
 const availableTaps = computed(() => {
   if (!systemInfo.value) return [];
   return [
-    ...systemInfo.value.stats,
-    ...systemInfo.value.taps,
-    ...systemInfo.value.eo,
-    ...systemInfo.value.srt,
-    ...systemInfo.value.rtd,
-    ...systemInfo.value.follow,
+    ...(systemInfo.value.stats || []),
+    ...(systemInfo.value.taps || []),
+    ...(systemInfo.value.eo || []),
+    ...(systemInfo.value.srt || []),
+    ...(systemInfo.value.rtd || []),
+    ...(systemInfo.value.follow || []),
+    ...(systemInfo.value.nstat || []),
+    ...(systemInfo.value.convs || []),
+    ...(systemInfo.value.seqa || []),
   ];
 });
 
@@ -199,26 +202,40 @@ function handleOpenInfo() {
   isInfoModalOpen.value = true;
 }
 
-async function handleApplyTap(tapString: string) {
+async function handleApplyTap(payload: Record<string, string>) {
   if (!session.value) return;
-  
-  isAddTapModalOpen.value = false;
 
   try {
-    const tapId = "tap_" + Date.now();
-    await api.applyTap(session.value.id, { tap0: tapString });
+    const tapIdBase = "tap_" + Date.now();
+    const tapResponse = await api.applyTap(session.value.id, payload);
 
-    const tapName =
-      availableTaps.value.find((t) => t.tap === tapString)?.name || tapString;
-    activeTaps.value.push({
-      id: tapId,
-      tapString,
-      name: tapName,
-      results: {
-        status: "Tap applied successfully",
-        mockData: "Waiting for stats...",
-      },
-    });
+    for (const [key, tapString] of Object.entries(payload)) {
+      const tapName =
+        availableTaps.value.find((t) => t.tap === tapString)?.name || tapString;
+
+      const resultObj = tapResponse?.results?.find(
+        (r: any) => 
+          r.tap === tapString || 
+          (tapString.startsWith("stat:") && r.tap === tapString.replace("stat:", "stats:"))
+      );
+
+      if (!activeTaps.value.find((t) => t.tapString === tapString)) {
+        activeTaps.value.push({
+          id: tapIdBase + "_" + key,
+          tapString,
+          name: tapName,
+          results: resultObj || null,
+        });
+      } else {
+        // If it was already active, update the results
+        const existing = activeTaps.value.find(
+          (t) => t.tapString === tapString,
+        );
+        if (existing) {
+          existing.results = resultObj || null;
+        }
+      }
+    }
   } catch (err: unknown) {
     errorMessage.value =
       err instanceof Error ? err.message : "Failed to apply tap";
@@ -319,11 +336,6 @@ async function handleApplyTap(tapString: string) {
           @add-tap="isAddTapModalOpen = true"
         />
 
-        <AnalyticsDashboard
-          v-if="session && statistics"
-          :active-taps="activeTaps"
-        />
-
         <FramesTable
           ref="framesTableRef"
           v-if="session && statistics"
@@ -407,6 +419,7 @@ async function handleApplyTap(tapString: string) {
     <AddTapModal
       :is-open="isAddTapModalOpen"
       :available-taps="availableTaps"
+      :active-taps="activeTaps"
       @close="isAddTapModalOpen = false"
       @apply="handleApplyTap"
     />

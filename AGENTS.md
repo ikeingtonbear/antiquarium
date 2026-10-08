@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-[plan.md](specs/018-apply-tap-options/plan.md)
+[plan.md](specs/019-refactor-tap-ui/plan.md)
 <!-- SPECKIT END -->
 
 ## External Dependencies & API Contracts
